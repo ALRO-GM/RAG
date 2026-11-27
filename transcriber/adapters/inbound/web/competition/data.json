@@ -209,11 +209,6 @@
    "url": "https://poly.ai/",
    "seen": "2026-11-24"
   },
-  "anthropic_haiku55": {
-   "label": "Anthropic, Claude Haiku 5.5",
-   "url": "https://platform.claude.com/docs/en/models/haiku-5-5/overview",
-   "seen": "2026-11-27"
-  },
   "model_comparison": {
    "label": "docs/skills/MODEL_COMPARISON.md",
    "url": "https://github.com/ALRO-GM/RAG/blob/main/docs/skills/MODEL_COMPARISON.md"
@@ -221,6 +216,11 @@
   "simulation": {
    "label": "docs/skills/SIMULATION.md §3",
    "url": "https://github.com/ALRO-GM/RAG/blob/main/docs/skills/SIMULATION.md"
+  },
+  "metaview_screening": {
+   "label": "Metaview, AI Screening Agent",
+   "url": "https://www.metaview.ai/screening",
+   "seen": "2026-11-27"
   }
  },
  "steps": [
@@ -498,7 +498,7 @@
    "kind": "callcentre",
    "basis": "official",
    "source": "talkdesk",
-   "runs": "cloud",
+   "runs": "unpublished",
    "price": {
     "es": "De 85 USD (solo canales digitales) a 225 USD por usuario y mes; con voz, desde 105. Su copiloto de IA se contrata aparte, sin precio publicado",
     "en": "From 85 USD (digital channels only) to 225 USD per user per month; with voice, from 105. Its AI copilot is an add-on with no published price"
@@ -567,7 +567,7 @@
    "kind": "callcentre",
    "basis": "official",
    "source": "twilio",
-   "runs": "cloud",
+   "runs": "unpublished",
    "price": {
     "es": "Copiloto (en pruebas, precio que puede cambiar): 0,035 USD por minuto de voz. Flex: desde 1 USD por hora activa o 150 USD por usuario y mes",
     "en": "Copilot (beta, price may change): 0.035 USD per voice minute. Flex: from 1 USD per active hour or 150 USD per user per month"
@@ -636,7 +636,7 @@
    "kind": "interviews",
    "basis": "none",
    "source": "brighthire",
-   "runs": "cloud",
+   "runs": "unpublished",
    "price": {
     "es": "Sin precio público",
     "en": "No public price"
@@ -664,7 +664,7 @@
    "kind": "interviews",
    "basis": "none",
    "source": "hirevue",
-   "runs": "cloud",
+   "runs": "unpublished",
    "price": {
     "es": "Sin precio público",
     "en": "No public price"
@@ -687,7 +687,7 @@
    "kind": "interviews",
    "basis": "official",
    "source": "metaview",
-   "runs": "cloud",
+   "runs": "unpublished",
    "price": {
     "es": "Entrevistador de IA: sin precio público. Notas y revisión de candidaturas: precio no comprobado. Agente para buscar candidatos: 0, 100 o 300 USD por usuario y mes",
     "en": "AI interviewer: no public price. Notes and application review: price not checked. Candidate-sourcing agent: 0, 100 or 300 USD per user per month"
@@ -715,7 +715,7 @@
    "kind": "voicebot",
    "basis": "official",
    "source": "retell",
-   "runs": "cloud",
+   "runs": "unpublished",
    "price": {
     "es": "0,07–0,31 USD por minuto",
     "en": "0.07–0.31 USD per minute"
@@ -761,7 +761,7 @@
    "kind": "voicebot",
    "basis": "official",
    "source": "polyai",
-   "runs": "cloud",
+   "runs": "unpublished",
    "price": {
     "es": "API: 0,02 USD por minuto conectado más el texto procesado, telefonía no incluida. Plataforma completa: por presupuesto",
     "en": "API: 0.02 USD per connected minute plus the text processed, telephony not included. Full platform: by quote"
@@ -803,8 +803,8 @@
     "en": "The voice goes to no outside AI service"
    },
    "body": {
-    "es": "Se pasa a texto en un servidor propio con una tarjeta gráfica de consumo. Según sus páginas, las empresas de la tabla se ofrecen como servicio en la nube.",
-    "en": "It becomes text on your own server with a consumer graphics card. According to their pages, the companies in the table are offered as a cloud service."
+    "es": "Se pasa a texto en un servidor propio con una tarjeta gráfica de consumo.",
+    "en": "It becomes text on your own server with a consumer graphics card."
    },
    "source": "live_asr"
   },
@@ -836,7 +836,7 @@
     "en": "One system for everything"
    },
    "body": {
-    "es": "Entrevistas, llamadas de atención y asistente de voz usan el mismo motor y la misma biblioteca de documentos.",
+    "es": "Entrevistas, llamadas de atención al cliente y asistente de voz usan el mismo motor y la misma biblioteca de documentos.",
     "en": "Interviews, support calls and the voice assistant use the same engine and the same document library."
    }
   },
@@ -1036,11 +1036,12 @@
     },
     "metaview": {
      "level": "yes",
-     "source": "metaview",
+     "source": "metaview_screening",
      "text": {
-      "es": "Entrevistador de IA",
-      "en": "AI interviewer"
-     }
+      "es": "Entrevistador de IA por voz",
+      "en": "AI voice interviewer"
+     },
+     "quote": "Metaview AI Screening Agent: Voice Interviews & Role-Plays"
     }
    }
   },
@@ -1063,21 +1064,14 @@
     }
    },
    "cells": {
-    "talkdesk": {
-     "level": "no",
-     "source": "talkdesk",
-     "text": {
-      "es": "En su nube, según su web",
-      "en": "In its cloud, according to its website"
-     }
-    },
     "nice": {
      "level": "no",
      "source": "nice",
      "text": {
       "es": "En su nube, según su web",
       "en": "In its cloud, according to its website"
-     }
+     },
+     "quote": "Rapidly transform and scale your CX on an innovative open-cloud foundation"
     },
     "five9": {
      "level": "no",
@@ -1085,15 +1079,8 @@
      "text": {
       "es": "En su nube, según su web",
       "en": "In its cloud, according to its website"
-     }
-    },
-    "twilio": {
-     "level": "no",
-     "source": "twilio",
-     "text": {
-      "es": "En su nube, según su web",
-      "en": "In its cloud, according to its website"
-     }
+     },
+     "quote": "Bring people, AI, channels, data, and systems together on one proven, open cloud platform"
     },
     "cresta": {
      "level": "no",
@@ -1101,7 +1088,8 @@
      "text": {
       "es": "En su nube, según su web",
       "en": "In its cloud, according to its website"
-     }
+     },
+     "quote": "Software as a Service (SaaS) · Deployed on AWS"
     },
     "observe": {
      "level": "no",
@@ -1109,55 +1097,17 @@
      "text": {
       "es": "En su nube, según su web",
       "en": "In its cloud, according to its website"
-     }
-    },
-    "brighthire": {
-     "level": "no",
-     "source": "brighthire",
-     "text": {
-      "es": "En su nube, según su web",
-      "en": "In its cloud, according to its website"
-     }
-    },
-    "hirevue": {
-     "level": "no",
-     "source": "hirevue",
-     "text": {
-      "es": "En su nube, según su web",
-      "en": "In its cloud, according to its website"
-     }
-    },
-    "metaview": {
-     "level": "no",
-     "source": "metaview",
-     "text": {
-      "es": "En su nube, según su web",
-      "en": "In its cloud, according to its website"
-     }
-    },
-    "retell": {
-     "level": "no",
-     "source": "retell",
-     "text": {
-      "es": "En su nube, según su web",
-      "en": "In its cloud, according to its website"
-     }
+     },
+     "quote": "Software as a Service (SaaS) · Deployed on AWS"
     },
     "vapi": {
      "level": "no",
      "source": "vapi",
      "text": {
-      "es": "En su nube, según su web",
-      "en": "In its cloud, according to its website"
-     }
-    },
-    "polyai": {
-     "level": "no",
-     "source": "polyai",
-     "text": {
-      "es": "En su nube, según su web",
-      "en": "In its cloud, according to its website"
-     }
+      "es": "Alojado por Vapi, según su web",
+      "en": "Hosted by Vapi, according to its website"
+     },
+     "quote": "Pre-paid, $0.05/min Vapi hosting. A fully managed platform"
     }
    }
   },
@@ -1189,11 +1139,11 @@
      }
     },
     "five9": {
-     "level": "yes",
+     "level": "partial",
      "source": "five9_assist",
      "text": {
-      "es": "Listas de comprobación en directo",
-      "en": "Live checklists"
+      "es": "Tarjetas de guía y listas en directo; no dice si comprueba lo dicho",
+      "en": "Live guidance cards and checklists; it does not say whether it checks what was said"
      }
     },
     "twilio": {
@@ -1205,11 +1155,11 @@
      }
     },
     "cresta": {
-     "level": "yes",
+     "level": "partial",
      "source": "cresta_assist",
      "text": {
-      "es": "Lista de pasos durante la llamada",
-      "en": "A list of steps during the call"
+      "es": "Lista de pasos durante la llamada; no dice si se marca sola",
+      "en": "A list of steps during the call; it does not say whether it ticks itself"
      }
     }
    }
@@ -1395,21 +1345,14 @@
       "en": "Live transcription"
      }
     },
-    "brighthire": {
-     "level": "partial",
-     "source": "brighthire_home",
-     "text": {
-      "es": "Notas de la entrevista con IA",
-      "en": "AI notes of the interview"
-     }
-    },
     "metaview": {
-     "level": "partial",
-     "source": "metaview",
+     "level": "yes",
+     "source": "metaview_screening",
      "text": {
-      "es": "Notas de la entrevista",
-      "en": "Interview notes"
-     }
+      "es": "Graba y pasa a texto las entrevistas de su entrevistador de IA",
+      "en": "Records and transcribes its AI interviewer's calls"
+     },
+     "quote": "Every call is recorded, transcribed, and scored against your rubric."
     }
    }
   },
@@ -1556,6 +1499,24 @@
       "es": "Por minuto conectado; telefonía aparte",
       "en": "Per connected minute; telephony separate"
      }
+    },
+    "talkdesk": {
+     "level": "yes",
+     "source": "talkdesk",
+     "text": {
+      "es": "Autopilot: asistente virtual de IA para voz y canales digitales (complemento)",
+      "en": "Autopilot: AI virtual assistant for voice and digital channels (add-on)"
+     },
+     "quote": "Agentic AI virtual assistant for voice and digital channels"
+    },
+    "five9": {
+     "level": "yes",
+     "source": "five9",
+     "text": {
+      "es": "Agentes virtuales de IA por voz, web, SMS o WhatsApp",
+      "en": "AI virtual agents by voice, web, SMS or WhatsApp"
+     },
+     "quote": "Deploy intelligent virtual agents (IVAs) to provide self-service across web, chatbot, voice, SMS, or WhatsApp"
     }
    }
   },
@@ -1686,17 +1647,26 @@
    "live_calls": 13,
    "live_seconds": 108,
    "live_source": "live_measures",
-   "analysis_input_tokens": 292614,
-   "analysis_output_tokens": 88498,
+   "analysis_tokens": {
+    "input": 300,
+    "cache_write": 287729,
+    "cache_read": 4585,
+    "output": 88498
+   },
+   "analysis_usd_reported": 0.102,
    "analysis_source": "model_comparison",
    "analysis_seconds": 881.8,
    "analysis_seconds_source": "simulation",
-   "token_margin": 1.3,
-   "token_margin_source": "anthropic_haiku55",
+   "haiku_cache": {
+    "write_per_mtok": 0.2,
+    "read_per_mtok": 0.01
+   },
    "opus": {
     "model": "Claude Opus 5.5",
     "input_per_mtok": 4,
     "output_per_mtok": 20,
+    "write_per_mtok": 8,
+    "read_per_mtok": 0.4,
     "source": "anthropic_pricing"
    }
   },
@@ -1730,7 +1700,7 @@
    },
    "five9": {
     "low": {
-     "seat": 119
+     "seat": 159
     },
     "high": {
      "seat": 159
@@ -1738,8 +1708,8 @@
     "min_seats": 50,
     "more": true,
     "note": {
-     "es": "Mínimo 50 puestos; puede haber cargos por uso",
-     "en": "Minimum 50 seats; usage charges may apply"
+     "es": "Plan Core, el más barato con voz; mínimo 50 puestos; puede haber cargos por uso",
+     "en": "Core plan, the cheapest with voice; minimum 50 seats; usage charges may apply"
     }
    },
    "twilio": {
@@ -1762,9 +1732,7 @@
    },
    "cresta": {
     "low": {
-     "year": 150000,
-     "year_calls": 100000,
-     "extra_call": 1.5
+     "call": 1.5
     },
     "high": {
      "year": 150000,
@@ -1773,8 +1741,8 @@
     },
     "more": false,
     "note": {
-     "es": "Contrato anual de 150.000 USD hasta 100.000 llamadas; 1,50 USD por llamada más",
-     "en": "Yearly contract of 150,000 USD up to 100,000 calls; 1.50 USD per extra call"
+     "es": "Menor: 1,50 USD por llamada. Mayor: contrato anual de 150.000 USD hasta 100.000 llamadas. El anuncio no deja claro si se puede pagar solo por llamada",
+     "en": "Lower: 1.50 USD per call. Higher: yearly contract of 150,000 USD up to 100,000 calls. The listing does not make clear whether per-call alone is possible"
     }
    },
    "observe": {

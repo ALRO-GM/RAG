@@ -40,13 +40,15 @@ follows; the page holds no figure of its own.
    itself (`content_today`, `content_automatic`).
 2. **Cuánto cuesta el mismo servicio** — one chart per scenario, a
    switch between «Equipo pequeño: 5 personas» and «Equipo grande: 50
-   personas» (§3c). Us first: a range marked «Estimación de coste, no es
-   un precio»; then each company's published price applied to the same
-   scenario, or «Precio no publicado» / «No comparable» with the
-   service it sells instead. Under the chart: how to read the bar, our
-   assumptions in one line, the same with Opus, and that their prices
-   include their phone system or whole service while ours is only the
-   running cost.
+   personas» (§3c). Us first, two highlighted rows marked «Estimación de
+   coste, no es un precio»: with Haiku and with Opus (today's default)
+   for the analysis, each saying it pays only the language model and
+   that one server is needed per live conversation at a time; then each
+   company's published price applied to the same scenario, or «Precio no
+   publicado» / «No comparable» with the service it sells instead. Under
+   the chart, one short paragraph (how to read the bar, our assumptions,
+   their prices include their phone system) and the sources folded
+   under «Fuentes».
 3. **Tarea por tarea** — a legend (Sí / En parte / No / No publicado,
    each a shape and a word; «No publicado» does not mean the company
    lacks it), then one chart per task (`tasks`, §3b): every company in
@@ -55,14 +57,16 @@ follows; the page holds no figure of its own.
    empresas», and the cell sources under each chart. Our strengths come
    first, «Varias conversaciones a la vez» (where we are behind) last.
 4. **Nosotros frente a cada una** — a company picker; for the company
-   chosen: its price, users and where it runs, then «Nosotros sí; X no o
-   solo en parte», «Nosotros sí; X no lo publica», «X sí; nosotros no o
-   solo en parte» (the task cells where it is ahead plus its `offers`)
-   and «Los dos» (`versus` in the lib), with the sources.
+   chosen: its price, users and where it runs (`runs`), then «Donde
+   vamos por delante de X», «Lo que X no publica», «Donde X va por
+   delante» (the task cells where it is ahead plus its `offers`) and «Los
+   dos por igual» (`versus` in the lib); each task shows our mark and
+   its mark, so a partial of ours never reads as «sí».
 5. **Precios publicados** — the price table (cards on a phone): company,
    price, users and contract, where it runs, grouped by purpose, each
    row with the link to the page where the price was seen and the date;
-   our row last. Then «Dónde vamos por detrás» (`gaps`).
+   our row last. The section keeps the old anchor `#competencia` too.
+   Then «Dónde vamos por detrás» (`gaps`).
 6. **Cómo funciona** — four steps (`steps`): documents in → kept by topic
    (a job offer becomes an interview plan, manuals become call material)
    → help during the conversation → report. Steps 3 and 4 carry the «RAG»
@@ -99,24 +103,27 @@ figure. «Precio no comprobado» is used where the notes only say the
 reading tool saw no price (Metaview's Notetaker and Application Review
 tabs): that is not proof that none is published.
 
-The column «Cómo se ofrece (según su página)» and its badge «Servicio en
-la nube» repeat what the notes found: every company checked is sold as a
-cloud service (SaaS) according to its own documentation; the specific
-evidence re-checked on 27-11 is Cresta («deployed on AWS») and
-Observe.AI (SaaS listings on AWS Marketplace); the rest is from the
-earlier report of 24-11 (the vendors' documentation, column «Despliegue:
-Nube»). No vendor was found offering live assistance run on the
-customer's hardware, which does not prove none exists; the page does not
-claim it. The page makes no claim about the competitors' Spanish (the
-earlier report's remark was not re-verified).
+The column «Cómo se ofrece (según su página)» (`runs`) says «Servicio en
+la nube» only where the cited page itself says so, re-read on
+**2026-11-27** in the review of #295 (the words are kept as `quote` in
+the «Dónde se procesa la voz» cell): NICE («an innovative open-cloud
+foundation»), Five9 («one proven, open cloud platform»), Cresta and
+Observe.AI (AWS Marketplace: «Software as a Service (SaaS)», «Deployed
+on AWS»), Vapi («Vapi hosting», «A fully managed platform»). The pricing
+pages of Talkdesk, Twilio, Retell AI, PolyAI and Metaview say nothing
+about where they run, and BrightHire's and HireVue's could not be read
+(JavaScript only): «No publicado». No vendor was found offering live
+assistance run on the customer's hardware, which does not prove none
+exists; the page does not claim it. The page makes no claim about the
+competitors' Spanish.
 
 | Company | Figure on the page | Basis | Source |
 |---|---|---|---|
 | Talkdesk | from 85 (Digital Essentials, no voice) to 225 USD per user per month; with voice from 105 (Voice Essentials); Copilot without price; Express: 25 licences, no commitment | official | https://www.talkdesk.com/pricing/ |
 | NICE CXone | 110–249 USD per agent per month, +0.25 USD per session on the top plan; copilots by usage, no rate | official | https://www.nice.com/pricing |
-| Five9 | 119–159 USD per concurrent user per month, «usage-based pricing may apply, with a minimum of 50 seats»; 3,000 AI minutes per seat + usage | official | https://www.five9.com/pricing |
+| Five9 | 119 (Digital, «Digital channels only») or 159 (Core, all channels including voice) USD per concurrent user per month, «usage-based pricing may apply, with a minimum of 50 seats»; 3,000 AI minutes per seat + usage | official | https://www.five9.com/pricing |
 | Twilio | Agent Copilot (beta; «Public Beta prices are subject to change») 0.035 USD per voice minute; Flex from 1 USD per active hour or 150 USD per user per month | official | https://www.twilio.com/en-us/flex/pricing |
-| Cresta | 150,000 USD for 12 months up to 100,000 calls; 1.50 USD per extra call; not cancellable or refundable | marketplace | https://aws.amazon.com/marketplace/pp/prodview-lmdwown6xoo6q |
+| Cresta | 150,000 USD for 12 months up to 100,000 calls; «Real-Time Agent Assist for Voice, per Call» 1.50 USD; not cancellable or refundable | marketplace | https://aws.amazon.com/marketplace/pp/prodview-lmdwown6xoo6q |
 | Observe.AI | 828 USD per agent; the listing says «per Agent per month» but shows the amount as «Cost/12 months» (unclear); 12/24/36-month contracts, no refunds | marketplace | https://aws.amazon.com/marketplace/pp/prodview-lgvu5s7gueesi |
 | BrightHire | no public price; quoted by applicants, interviews or company size | none | https://brighthire.com/pricing/ |
 | HireVue | no public price | none | https://www.hirevue.com/pricing |
@@ -217,88 +224,94 @@ Levels: `yes` (Sí), `partial` (En parte), `no` (No), `unknown` (No
 publicado). A company the file does not fill for a task is `unknown`;
 the page says once that «No publicado» means not seen on its website or
 not checked, **not** that the company lacks it. «No» about a company is
-used only in «Dónde se procesa la voz», backed by its own page being
-the cloud service of §2 (the test checks it); everything else that the
-notes did not confirm stays `unknown`, or `partial` when the function is
-confirmed but the part the task asks for is not (said in the cell).
+used only in «Dónde se procesa la voz», and only where the cited page
+says the company runs it in its cloud or hosts it (its words in
+`quote`; the test checks that every «No» has one). Everything else the
+sources do not confirm stays `unknown`, or `partial` when the function
+is confirmed but the part the task asks for is not (said in the cell).
 
-The feature pages were read on **2026-11-24** (research notes of that
-date, outside the repository: only pages the notes mark as read by the
-author or as the vendor's own documentation; search-engine snippets were
-not used for cells); prices and the cloud column on 2026-11-27 (§2).
-Our cells cite repository documents.
+Feature pages: read on 2026-11-24 (research notes outside the
+repository: only pages the notes mark as read directly or as the
+vendor's own documentation; no search-engine snippets) unless the
+source says 2026-11-27, the date of the review re-reading (pricing
+pages, AWS Marketplace listings, Metaview's screening page). Cells with
+a quote give the page's own words. Our cells cite repository documents.
 
-| Task | Company | Level | Cell | Source |
-|---|---|---|---|---|
-| Job interviews | **us** | yes | Plan from the job offer, what is still to ask and questions to avoid; and a voice interviewer | docs/live/ASSIST_MODES.md |
-| Job interviews | BrightHire | yes | Live guide for the interviewer and an AI interviewer that scores | https://brighthire.com/ |
-| Job interviews | HireVue | yes | Video interviews and an AI interviewer | https://www.hirevue.com/platform |
-| Job interviews | Metaview | yes | AI interviewer | https://www.metaview.ai/pricing |
-| Where the voice is processed | **us** | yes | On your server; the text does go to Claude (Anthropic) | docs/live/LIVE_ASR.md |
-| Where the voice is processed | Talkdesk | no | In its cloud, according to its website | https://www.talkdesk.com/pricing/ |
-| Where the voice is processed | NICE CXone | no | In its cloud, according to its website | https://www.nice.com/pricing |
-| Where the voice is processed | Five9 | no | In its cloud, according to its website | https://www.five9.com/pricing |
-| Where the voice is processed | Twilio | no | In its cloud, according to its website | https://www.twilio.com/en-us/flex/pricing |
-| Where the voice is processed | Cresta | no | In its cloud, according to its website | https://aws.amazon.com/marketplace/pp/prodview-lmdwown6xoo6q |
-| Where the voice is processed | Observe.AI | no | In its cloud, according to its website | https://aws.amazon.com/marketplace/pp/prodview-lgvu5s7gueesi |
-| Where the voice is processed | BrightHire | no | In its cloud, according to its website | https://brighthire.com/pricing/ |
-| Where the voice is processed | HireVue | no | In its cloud, according to its website | https://www.hirevue.com/pricing |
-| Where the voice is processed | Metaview | no | In its cloud, according to its website | https://www.metaview.ai/pricing |
-| Where the voice is processed | Retell AI | no | In its cloud, according to its website | https://www.retellai.com/pricing |
-| Where the voice is processed | Vapi | no | In its cloud, according to its website | https://vapi.ai/pricing |
-| Where the voice is processed | PolyAI | no | In its cloud, according to its website | https://poly.ai/pricing/ |
-| What must be said | **us** | yes | A list in red until it is said; the record says what was missing | docs/live/MANDATORY_ITEMS.md |
-| What must be said | Talkdesk | partial | Step-by-step scripts; it does not say whether it checks what was said | https://www.talkdesk.com/agent-assist/ |
-| What must be said | Five9 | yes | Live checklists | https://www.five9.com/products/capabilities/agent-assist |
-| What must be said | Twilio | yes | Flags script violations during the call | https://www.twilio.com/en-us/products/conversational-ai/conversational-intelligence |
-| What must be said | Cresta | yes | A list of steps during the call | https://cresta.com/product/agent-assist |
-| Live help with your documents | **us** | yes | Searches your documents and suggests what to say in 1.5–2.7 s (synthetic recordings) | docs/live/LIVE_MEASURES.md §1 |
-| Live help with your documents | Talkdesk | yes | Answers from your knowledge base (add-on) | https://www.talkdesk.com/agent-assist/ |
-| Live help with your documents | NICE CXone | yes | Knowledge and next steps during the call | https://www.nice.com/products/copilot-for-agents |
-| Live help with your documents | Five9 | partial | Live guidance cards; it does not say which documents they come from | https://www.five9.com/products/capabilities/agent-assist |
-| Live help with your documents | Twilio | partial | Suggested answers from your sources; live only in English and in beta | https://www.twilio.com/docs/flex/admin-guide/setup/copilot |
-| Live help with your documents | Cresta | yes | Answers with their sources cited | https://cresta.com/product/agent-assist |
-| Live help with your documents | Observe.AI | partial | Live help; with your documents, not checked | https://aws.amazon.com/marketplace/pp/prodview-lgvu5s7gueesi |
-| Your content, up to date | **us** | yes | PDFs up to 500 MB and videos up to 1 GB; the interview plan keeps every version | docs/KNOWLEDGE.md |
-| Your content, up to date | Talkdesk | unknown | Uses your knowledge base; how it is updated, not checked | https://www.talkdesk.com/agent-assist/ |
-| Your content, up to date | NICE CXone | unknown | Works best with its own knowledge manager | https://www.nice.com/products/copilot-for-agents |
-| Your content, up to date | Twilio | yes | You upload your sources for the answers | https://www.twilio.com/docs/flex/admin-guide/setup/copilot |
-| Your content, up to date | Cresta | unknown | Answers from your sources; how they are uploaded, not checked | https://cresta.com/product/agent-assist |
-| Your content, up to date | Retell AI | yes | Knowledge bases: 10 free, 8 USD a month for each extra one | https://www.retellai.com/pricing |
-| Turning the conversation into text | **us** | yes | Live and from recordings; one channel per person or a single microphone | docs/live/MONO_DIARIZATION.md |
-| Turning the conversation into text | Talkdesk | yes | Live transcription (add-on) | https://www.talkdesk.com/agent-assist/ |
-| Turning the conversation into text | Five9 | yes | Real-time transcription | https://www.five9.com/products/capabilities/agent-assist |
-| Turning the conversation into text | Twilio | yes | Live transcription, billed separately | https://www.twilio.com/docs/flex/admin-guide/setup/copilot |
-| Turning the conversation into text | Cresta | yes | Live transcription | https://cresta.com/product/agent-assist |
-| Turning the conversation into text | BrightHire | partial | AI notes of the interview | https://brighthire.com/ |
-| Turning the conversation into text | Metaview | partial | Interview notes | https://www.metaview.ai/pricing |
-| Analysis after the call | **us** | yes | A report and each person's skills analysis | docs/SETTINGS.md |
-| Analysis after the call | Talkdesk | yes | AI call evaluation (add-on) | https://support.talkdesk.com/hc/en-us/articles/50371682083739-Talkdesk-QM-Using-Per-Question-Evaluation-Modes-and-AI-Rewrite |
-| Analysis after the call | NICE CXone | yes | Quality checks and automatic summary | https://www.nice.com/pricing |
-| Analysis after the call | Five9 | yes | Call summary | https://www.five9.com/products/capabilities/agent-assist |
-| Analysis after the call | Twilio | yes | Wrap-up notes and summary | https://www.twilio.com/docs/flex/admin-guide/setup/copilot |
-| Analysis after the call | Cresta | yes | Summary with reason, resolution and outcome | https://cresta.com/product/agent-assist |
-| Analysis after the call | Observe.AI | yes | Automatic quality review | https://observe.ai/platform/auto-qa |
-| Analysis after the call | BrightHire | yes | Notes and a filled-in scorecard | https://brighthire.com/ |
-| Analysis after the call | Metaview | yes | Notes and reports | https://www.metaview.ai/pricing |
-| Voice assistant | **us** | partial | Talks through the browser's microphone; no phone yet | docs/live/VOICEBOT.md |
-| Voice assistant | Twilio | yes | ConversationRelay, per minute | https://www.twilio.com/en-us/products/conversational-ai/pricing |
-| Voice assistant | Observe.AI | partial | AI agents for customers; by voice, not checked | https://observe.ai/llm-info |
-| Voice assistant | Retell AI | yes | By phone | https://www.retellai.com/pricing |
-| Voice assistant | Vapi | yes | By phone, SIP or web | https://vapi.ai/pricing |
-| Voice assistant | PolyAI | yes | Per connected minute; telephony separate | https://poly.ai/pricing/ |
-| Several conversations at once | **us** | no | One live conversation at a time per server | docs/live/LIVE_SESSION.md |
-| Several conversations at once | Talkdesk | yes | Per user; Express plan of 25 licences | https://www.talkdesk.com/pricing/ |
-| Several conversations at once | NICE CXone | yes | Per agent | https://www.nice.com/pricing |
-| Several conversations at once | Five9 | yes | Per concurrent user; minimum 50 seats | https://www.five9.com/pricing |
-| Several conversations at once | Twilio | yes | Per use or per user | https://www.twilio.com/en-us/flex/pricing |
-| Several conversations at once | Cresta | yes | Up to 100,000 calls a year | https://aws.amazon.com/marketplace/pp/prodview-lmdwown6xoo6q |
-| Several conversations at once | Observe.AI | yes | Per agent | https://aws.amazon.com/marketplace/pp/prodview-lgvu5s7gueesi |
-| Several conversations at once | BrightHire | unknown | Quote by applicants or interviews | https://brighthire.com/pricing/ |
-| Several conversations at once | Metaview | yes | Per user | https://www.metaview.ai/pricing |
-| Several conversations at once | Retell AI | yes | 20 calls at once included | https://www.retellai.com/pricing |
-| Several conversations at once | Vapi | yes | 4 to 30 calls at once | https://vapi.ai/pricing |
-| Several conversations at once | PolyAI | yes | 10 calls at once (API) | https://poly.ai/pricing/ |
+| Task | Company | Level | Cell | Source | Page's words |
+|---|---|---|---|---|---|
+| Job interviews | **us** | yes | Plan from the job offer, what is still to ask and questions to avoid; and a voice interviewer | docs/live/ASSIST_MODES.md | |
+| Job interviews | BrightHire | yes | Live guide for the interviewer and an AI interviewer that scores | https://brighthire.com/ |  |
+| Job interviews | HireVue | yes | Video interviews and an AI interviewer | https://www.hirevue.com/platform |  |
+| Job interviews | Metaview | yes | AI voice interviewer | https://www.metaview.ai/screening | Metaview AI Screening Agent: Voice Interviews & Role-Plays |
+| Where the voice is processed | **us** | yes | On your server; the text does go to Claude (Anthropic) | docs/live/LIVE_ASR.md | |
+| Where the voice is processed | NICE CXone | no | In its cloud, according to its website | https://www.nice.com/pricing | Rapidly transform and scale your CX on an innovative open-cloud foundation |
+| Where the voice is processed | Five9 | no | In its cloud, according to its website | https://www.five9.com/pricing | Bring people, AI, channels, data, and systems together on one proven, open cloud platform |
+| Where the voice is processed | Cresta | no | In its cloud, according to its website | https://aws.amazon.com/marketplace/pp/prodview-lmdwown6xoo6q | Software as a Service (SaaS) · Deployed on AWS |
+| Where the voice is processed | Observe.AI | no | In its cloud, according to its website | https://aws.amazon.com/marketplace/pp/prodview-lgvu5s7gueesi | Software as a Service (SaaS) · Deployed on AWS |
+| Where the voice is processed | Vapi | no | Hosted by Vapi, according to its website | https://vapi.ai/pricing | Pre-paid, $0.05/min Vapi hosting. A fully managed platform |
+| What must be said | **us** | yes | A list in red until it is said; the record says what was missing | docs/live/MANDATORY_ITEMS.md | |
+| What must be said | Talkdesk | partial | Step-by-step scripts; it does not say whether it checks what was said | https://www.talkdesk.com/agent-assist/ |  |
+| What must be said | Five9 | partial | Live guidance cards and checklists; it does not say whether it checks what was said | https://www.five9.com/products/capabilities/agent-assist |  |
+| What must be said | Twilio | yes | Flags script violations during the call | https://www.twilio.com/en-us/products/conversational-ai/conversational-intelligence |  |
+| What must be said | Cresta | partial | A list of steps during the call; it does not say whether it ticks itself | https://cresta.com/product/agent-assist |  |
+| Live help with your documents | **us** | yes | Searches your documents and suggests what to say in 1.5–2.7 s (synthetic recordings) | docs/live/LIVE_MEASURES.md §1 | |
+| Live help with your documents | Talkdesk | yes | Answers from your knowledge base (add-on) | https://www.talkdesk.com/agent-assist/ |  |
+| Live help with your documents | NICE CXone | yes | Knowledge and next steps during the call | https://www.nice.com/products/copilot-for-agents |  |
+| Live help with your documents | Five9 | partial | Live guidance cards; it does not say which documents they come from | https://www.five9.com/products/capabilities/agent-assist |  |
+| Live help with your documents | Twilio | partial | Suggested answers from your sources; live only in English and in beta | https://www.twilio.com/docs/flex/admin-guide/setup/copilot |  |
+| Live help with your documents | Cresta | yes | Answers with their sources cited | https://cresta.com/product/agent-assist |  |
+| Live help with your documents | Observe.AI | partial | Live help; with your documents, not checked | https://aws.amazon.com/marketplace/pp/prodview-lgvu5s7gueesi |  |
+| Your content, up to date | **us** | yes | PDFs up to 500 MB and videos up to 1 GB; the interview plan keeps every version | docs/KNOWLEDGE.md | |
+| Your content, up to date | Talkdesk | unknown | Uses your knowledge base; how it is updated, not checked | https://www.talkdesk.com/agent-assist/ |  |
+| Your content, up to date | NICE CXone | unknown | Works best with its own knowledge manager | https://www.nice.com/products/copilot-for-agents |  |
+| Your content, up to date | Twilio | yes | You upload your sources for the answers | https://www.twilio.com/docs/flex/admin-guide/setup/copilot |  |
+| Your content, up to date | Cresta | unknown | Answers from your sources; how they are uploaded, not checked | https://cresta.com/product/agent-assist |  |
+| Your content, up to date | Retell AI | yes | Knowledge bases: 10 free, 8 USD a month for each extra one | https://www.retellai.com/pricing |  |
+| Turning the conversation into text | **us** | yes | Live and from recordings; one channel per person or a single microphone | docs/live/MONO_DIARIZATION.md | |
+| Turning the conversation into text | Talkdesk | yes | Live transcription (add-on) | https://www.talkdesk.com/agent-assist/ |  |
+| Turning the conversation into text | Five9 | yes | Real-time transcription | https://www.five9.com/products/capabilities/agent-assist |  |
+| Turning the conversation into text | Twilio | yes | Live transcription, billed separately | https://www.twilio.com/docs/flex/admin-guide/setup/copilot |  |
+| Turning the conversation into text | Cresta | yes | Live transcription | https://cresta.com/product/agent-assist |  |
+| Turning the conversation into text | Metaview | yes | Records and transcribes its AI interviewer's calls | https://www.metaview.ai/screening | Every call is recorded, transcribed, and scored against your rubric. |
+| Analysis after the call | **us** | yes | A report and each person's skills analysis | docs/SETTINGS.md | |
+| Analysis after the call | Talkdesk | yes | AI call evaluation (add-on) | https://support.talkdesk.com/hc/en-us/articles/50371682083739-Talkdesk-QM-Using-Per-Question-Evaluation-Modes-and-AI-Rewrite |  |
+| Analysis after the call | NICE CXone | yes | Quality checks and automatic summary | https://www.nice.com/pricing |  |
+| Analysis after the call | Five9 | yes | Call summary | https://www.five9.com/products/capabilities/agent-assist |  |
+| Analysis after the call | Twilio | yes | Wrap-up notes and summary | https://www.twilio.com/docs/flex/admin-guide/setup/copilot |  |
+| Analysis after the call | Cresta | yes | Summary with reason, resolution and outcome | https://cresta.com/product/agent-assist |  |
+| Analysis after the call | Observe.AI | yes | Automatic quality review | https://observe.ai/platform/auto-qa |  |
+| Analysis after the call | BrightHire | yes | Notes and a filled-in scorecard | https://brighthire.com/ |  |
+| Analysis after the call | Metaview | yes | Notes and reports | https://www.metaview.ai/pricing |  |
+| Voice assistant | **us** | partial | Talks through the browser's microphone; no phone yet | docs/live/VOICEBOT.md | |
+| Voice assistant | Twilio | yes | ConversationRelay, per minute | https://www.twilio.com/en-us/products/conversational-ai/pricing |  |
+| Voice assistant | Observe.AI | partial | AI agents for customers; by voice, not checked | https://observe.ai/llm-info |  |
+| Voice assistant | Retell AI | yes | By phone | https://www.retellai.com/pricing |  |
+| Voice assistant | Vapi | yes | By phone, SIP or web | https://vapi.ai/pricing |  |
+| Voice assistant | PolyAI | yes | Per connected minute; telephony separate | https://poly.ai/pricing/ |  |
+| Voice assistant | Talkdesk | yes | Autopilot: AI virtual assistant for voice and digital channels (add-on) | https://www.talkdesk.com/pricing/ | Agentic AI virtual assistant for voice and digital channels |
+| Voice assistant | Five9 | yes | AI virtual agents by voice, web, SMS or WhatsApp | https://www.five9.com/pricing | Deploy intelligent virtual agents (IVAs) to provide self-service across web, chatbot, voice, SMS, or WhatsApp |
+| Several conversations at once | **us** | no | One live conversation at a time per server | docs/live/LIVE_SESSION.md | |
+| Several conversations at once | Talkdesk | yes | Per user; Express plan of 25 licences | https://www.talkdesk.com/pricing/ |  |
+| Several conversations at once | NICE CXone | yes | Per agent | https://www.nice.com/pricing |  |
+| Several conversations at once | Five9 | yes | Per concurrent user; minimum 50 seats | https://www.five9.com/pricing |  |
+| Several conversations at once | Twilio | yes | Per use or per user | https://www.twilio.com/en-us/flex/pricing |  |
+| Several conversations at once | Cresta | yes | Up to 100,000 calls a year | https://aws.amazon.com/marketplace/pp/prodview-lmdwown6xoo6q |  |
+| Several conversations at once | Observe.AI | yes | Per agent | https://aws.amazon.com/marketplace/pp/prodview-lgvu5s7gueesi |  |
+| Several conversations at once | BrightHire | unknown | Quote by applicants or interviews | https://brighthire.com/pricing/ |  |
+| Several conversations at once | Metaview | yes | Per user | https://www.metaview.ai/pricing |  |
+| Several conversations at once | Retell AI | yes | 20 calls at once included | https://www.retellai.com/pricing |  |
+| Several conversations at once | Vapi | yes | 4 to 30 calls at once | https://vapi.ai/pricing |  |
+| Several conversations at once | PolyAI | yes | 10 calls at once (API) | https://poly.ai/pricing/ |  |
+
+**Changed by the review of #295:** Talkdesk and Five9 «Sí» for the voice
+assistant (their pricing pages: «Agentic AI virtual assistant for voice
+and digital channels»; «intelligent virtual agents (IVAs) … voice»);
+Five9 and Cresta «En parte» for what must be said (checklists, not a
+check of what was said); Metaview's AI interviewer and transcripts cited
+to its screening page; BrightHire's transcription «No publicado»; «No»
+in «Dónde se procesa la voz» only for the five companies whose page
+says it. NICE and Cresta stay «No publicado» for the voice assistant (no
+page read says voice).
 
 **What each company offers that we do not** (`offers`, in «Nosotros
 frente a cada una»), each from the source named in the file: Talkdesk a
@@ -317,49 +330,65 @@ line or Twilio / Telnyx (pricing page); Vapi phone, SIP and web
 
 **Declined** (no source in the notes that a reader could open, or only a
 search snippet or a competitor's blog): what the interview tools show
-the interviewer live (BrightHire only says «real-time guides»); Metaview live prompts to the
-interviewer (a review site only); Bland's on-premises option (not in
-the list); Genesys, Gong, Balto (§2); any claim about the companies'
-Spanish; any latency of theirs.
+the interviewer live (BrightHire only says «real-time guides»); Metaview
+live prompts to the interviewer (a review site only); NICE's voice
+agents (only a link title, «AI Voice Agents»); Bland's on-premises
+option (not in the list); Genesys, Gong, Balto (§2); any claim about the
+companies' Spanish; any latency of theirs.
 
 ## 3c. «Cuánto cuesta el mismo servicio»: the arithmetic
 
-**Scenarios** (`cost.scenarios`): 5 and 50 people, each with
-80 hours of calls a month (an assumption: about 4 hours a day on 20
-days), calls of 10 minutes, live help during the call and analysis
-after it. Small: 400 hours, 24,000 minutes, 2,400 calls a month. Large:
-4,000 hours, 240,000 minutes, 24,000 calls.
+**Scenarios** (`cost.scenarios`): 5 and 50 people, each with 80 hours of
+calls a month (an assumption: about 4 hours a day on 20 days), calls of
+10 minutes, live help during the call and analysis after it. Small: 400
+hours, 24,000 minutes, 2,400 calls a month. Large: 4,000 hours, 240,000
+minutes, 24,000 calls.
 
-**Ours: an estimate of running cost, not a price** (we have none). Per
-hour of conversation:
+**Ours: an estimate of running cost, not a price** (we have none), in
+two rows, both highlighted: «Nosotros, con Haiku en el análisis» and
+«Nosotros, con Opus en el análisis (opción por defecto hoy)» — Opus is
+the default today (`src/config.py`, `DEFAULT_CLAUDE_CODE_MODEL`); the
+model is chosen per step on the «Análisis» page. Per hour of
+conversation:
 
-- Live help: **13 Haiku calls in the 108 s** support call of
-  `docs/live/LIVE_MEASURES.md` §1 → 433.3 calls an hour; each at the
-  measured ~1,750 input and ~90 output tokens (§3) =
-  (1,750 × 0.10 + 90 × 0.50) / 10⁶ = 0.00022 USD → **0.0953 USD/h**.
-- Analysis after the call: the Haiku session analysis of
-  `docs/skills/MODEL_COMPARISON.md` (150 calls; prompt tokens 300 +
-  287,729 cache write + 4,585 cache read = **292,614**; output
-  **88,498**) of the 881.8 s test meeting (`docs/skills/SIMULATION.md`
-  §3), scaled by duration (× 3,600 / 881.8 = 4.083): 1,194,615 input
-  and 361,302 output tokens → 0.1195 + 0.1807 = **0.3001 USD/h**. The
-  meeting had four people; a call has two, so scaling by duration
-  overstates the cost.
-- Total **0.3954 USD/h** at the Haiku 5.5 list price, no cache, no
-  batch. The faint part of our bar adds **30 %** of tokens: Anthropic
-  says Haiku 5.5's tokenizer counts about 30 % more tokens for the same
-  text than Haiku 4.5, and the repository does not record which Haiku
-  the measures used (https://platform.claude.com/docs/en/models/haiku-5-5/overview, seen 2026-11-27).
-- Small: 400 × 0.3954 = **158 USD** (to 206). Large: **1,582 USD** (to
-  2,056).
-- **With Opus for the analysis** (the default today, `src/config.py`;
-  chosen per step on the «Análisis» page): Opus 5.5 at 4 / 20 USD per
-  million (Anthropic pricing page, seen 2026-11-27): 1,194,615 × 4 +
-  361,302 × 20 = 12.00 USD/h plus the live help → 4,840 USD (small),
-  48,399 USD (large). The page says so under the chart.
-- **Not included** and said so: the server with its graphics card and
-  electricity (no sourced figure), any second server (one live
-  conversation at a time per server today, `docs/live/LIVE_SESSION.md`).
+- Live help (Haiku in both rows): **13 model calls in the 108 s**
+  support test call of `docs/live/LIVE_MEASURES.md` §1 (9 suggestions,
+  2 empty, 2 timeouts) → 433.3 calls an hour, worked out from that one
+  call, not measured over an hour; each at the measured ~1,750 input and
+  ~90 output tokens (§3) = (1,750 × 0.10 + 90 × 0.50) / 10⁶ = 0.00022
+  USD → **0.0953 USD/h**.
+- Analysis: the measured Haiku session of
+  `docs/skills/MODEL_COMPARISON.md` (150 calls on the 881.8 s test
+  meeting of `docs/skills/SIMULATION.md` §3): 300 uncached input,
+  287,729 cache-write, 4,585 cache-read and 88,498 output tokens. Claude
+  Code prices cache writes at 2× input (one-hour cache) and reads at
+  0.1×, so with Haiku 5.5 (0.10 / 0.20 / 0.01 / 0.50 per million):
+  (300 × 0.10 + 287,729 × 0.20 + 4,585 × 0.01 + 88,498 × 0.50) / 10⁶ =
+  **0.10187 USD**, the 0.102 the document reports (the test checks it;
+  its Opus indicator row checks out the same way, 1.815). With Opus 5.5
+  (4 / 8 / 0.4 / 20): **4.0748 USD** for the same session (the Opus
+  session's own tokens were not recorded, so the Haiku session's tokens
+  are priced at Opus rates). Scaled by duration (× 3,600 / 881.8 =
+  4.083): **0.4159 USD/h** (Haiku), **16.636 USD/h** (Opus). The
+  meeting had four people and a call has two, so this overstates the
+  cost.
+- Total: **0.5112 USD/h** with Haiku, **16.731 USD/h** with Opus.
+- **The +30 % tokenizer margin of the first version is dropped:** the
+  figures are now the tokens and dollars Claude Code counted for the
+  measured run, priced at today's list; the repository does not record
+  which Haiku the run used, and if it was Haiku 4.5 Anthropic says Haiku
+  5.5 counts about 30 % more tokens for the same text (Haiku 5.5
+  overview page). That uncertainty is stated here, not drawn as a range.
+- **On our rows** (both scenarios): «Solo el modelo de lenguaje; hoy hace
+  falta un servidor por cada conversación en directo a la vez» (one live
+  session per server, `docs/live/LIVE_SESSION.md`). Under the chart:
+  the server with its graphics card and electricity are not included
+  (no sourced figure).
+
+| Row | Small (USD/month) | Large (USD/month) |
+|---|---|---|
+| Us, Haiku for the analysis | 400 × 0.5112 = **204** | **2,045** |
+| Us, Opus for the analysis (default today) | 400 × 16.731 = **6,692** | **66,924** |
 
 **Theirs: the published list price applied to the scenario**
 (`cost.competitors`, `planCost`; low and high are the cheapest and the
@@ -367,24 +396,24 @@ dearest plan):
 
 | Company | Low | High | Small (USD/month) | Large (USD/month) | Left out, said on the row |
 |---|---|---|---|---|---|
-| Talkdesk | 105 per user (cheapest plan with voice) | 225 per user | 525–1,125 | 5,250–11,250 | the AI copilot (no published price) |
+| Talkdesk | 105 per user (Voice Essentials, cheapest plan with voice) | 225 per user | 525–1,125 | 5,250–11,250 | the AI copilot (no published price) |
 | NICE CXone | 110 per agent | 249 per agent + 0.25 per session (one session per call assumed) | 550–1,845 | 5,500–18,450 | the copilots (by usage, no rate) |
-| Five9 | 119 per concurrent user, minimum 50 | 159 | 5,950–7,950 | 5,950–7,950 | usage charges that may apply |
+| Five9 | 159 per concurrent user (Core, the cheapest plan with voice; Digital at 119 is «Digital channels only»), minimum 50 | same | 7,950 | 7,950 | usage charges that may apply |
 | Twilio | Copilot 0.035 per minute + Flex 1 per active hour (call hours as the least active time) | Copilot + Flex 150 per user | 1,240–1,590 | 12,400–15,900 | the streaming transcription Copilot requires (docs) |
-| Cresta | 150,000 a year up to 100,000 calls, 1.50 per extra call | same | 12,500 | 36,000 (288,000 calls a year) | — |
+| Cresta | «Real-Time Agent Assist for Voice, per Call» 1.50 | 150,000 a year up to 100,000 calls, 1.50 per extra call | 3,600–12,500 | 36,000 (both) | the listing does not make clear whether per-call alone is possible; said on the row |
 | Observe.AI | 828 per agent read as a year | 828 per agent read as a month | 345–4,140 | 3,450–41,400 | the listing is unclear, said on the row |
 
-BrightHire, HireVue and Metaview sell job-interview services («Precio no
-publicado» for the AI interviewers); Retell AI, Vapi and PolyAI sell a
-voice assistant charged per minute: their prices do not apply to this
-case and the chart says «No comparable», without a figure. Their prices
-are in «Precios publicados».
+BrightHire and HireVue sell job-interview services with no public price
+(«Precio no publicado»); Metaview (job interviews, other prices
+published) and Retell AI, Vapi and PolyAI (a voice assistant charged per
+minute) are «No comparable», without a figure. Their prices are in
+«Precios publicados».
 
 **Not symmetric, and the page says it:** their prices include their
-phone system or whole service, support and margin; ours is only what it
-costs to run the language model. `tests/web/competition.test.mjs` checks
-every number above.
-
+phone system or whole service; ours is only what it costs to run the
+language model. `tests/web/competition.test.mjs` checks every number
+above. On the page, the source links of the cost chart, of each task
+chart and of the company panel are folded under «Fuentes».
 
 ## 4. Our system: what each statement rests on
 

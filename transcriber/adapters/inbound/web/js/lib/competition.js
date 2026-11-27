@@ -178,22 +178,33 @@ export function competitorCost(cost, id, sc) {
   return { low: Math.min(a, b), high: Math.max(a, b), more: Boolean(spec.more), unclear: Boolean(spec.unclear) };
 }
 
-/** Our running cost per hour of conversation: live suggestions plus the analysis after the call, at `price`. */
-export function oursPerHour(cost, rag, price = rag.price) {
-  const o = cost.ours;
-  const answersPerHour = (o.live_calls / o.live_seconds) * 3600;
-  const live = answersPerHour * callCost(price, rag.prompt_tokens, rag.output_tokens);
-  const scale = 3600 / o.analysis_seconds;
-  const analysis = (o.analysis_input_tokens * scale * price.input_per_mtok + o.analysis_output_tokens * scale * price.output_per_mtok) / 1e6;
-  return { answersPerHour, live, analysis, total: live + analysis };
+/** Dollars of the measured analysis session at `price` (uncached input, cache writes, cache reads, output). */
+export function sessionCost(tokens, price) {
+  return (tokens.input * price.input_per_mtok + tokens.cache_write * price.write_per_mtok
+    + tokens.cache_read * price.read_per_mtok + tokens.output * price.output_per_mtok) / 1e6;
 }
 
-/** Our estimated cost a month in scenario `sc`: Haiku with the measured tokens (low), plus the token margin (high), and the same with Opus for the analysis. */
+/**
+ * Our running cost per hour of conversation with `model` ("haiku" or
+ * "opus") for the analysis: the live help (Haiku, the measured calls per
+ * hour at the measured prompt) plus the measured analysis session scaled
+ * by duration.
+ */
+export function oursPerHour(cost, rag, model = "haiku") {
+  const o = cost.ours;
+  const answersPerHour = (o.live_calls / o.live_seconds) * 3600;
+  const live = answersPerHour * callCost(rag.price, rag.prompt_tokens, rag.output_tokens);
+  const price = model === "opus" ? o.opus : { ...rag.price, ...o.haiku_cache };
+  const session = sessionCost(o.analysis_tokens, price);
+  const analysis = session * (3600 / o.analysis_seconds);
+  return { answersPerHour, live, session, analysis, total: live + analysis };
+}
+
+/** Our estimated cost a month in scenario `sc`, with Haiku and with Opus for the analysis. */
 export function oursCost(cost, rag, sc) {
-  const haiku = oursPerHour(cost, rag);
-  const opusPrice = { ...rag.price, ...cost.ours.opus };
-  const opus = haiku.live + oursPerHour(cost, rag, opusPrice).analysis;
-  return { low: haiku.total * sc.hours, high: haiku.total * sc.hours * cost.ours.token_margin, opus: opus * sc.hours, perHour: haiku };
+  const haiku = oursPerHour(cost, rag, "haiku");
+  const opus = oursPerHour(cost, rag, "opus");
+  return { haiku: haiku.total * sc.hours, opus: opus.total * sc.hours, perHour: { haiku, opus } };
 }
 
 /**
@@ -224,7 +235,7 @@ export function citedInfoSources(data) {
   }
   for (const c of data.competitors) for (const offer of c.offers ?? []) cited.push({ id: offer.source, where: `${c.name}.offers` });
   const o = data.cost?.ours;
-  if (o) for (const key of ["live_source", "analysis_source", "analysis_seconds_source", "token_margin_source"]) cited.push({ id: o[key], where: `cost.ours.${key}` });
+  if (o) for (const key of ["live_source", "analysis_source", "analysis_seconds_source"]) cited.push({ id: o[key], where: `cost.ours.${key}` });
   if (o?.opus) cited.push({ id: o.opus.source, where: "cost.ours.opus" });
   for (const [id, spec] of Object.entries(data.cost?.competitors ?? {})) for (const s of spec.also ?? []) cited.push({ id: s, where: `cost.${id}` });
   return cited;

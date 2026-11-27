@@ -179,7 +179,13 @@ function models(data) {
       whereBadge(m.where)))));
 }
 
-const RUNS_KEY = { cloud: "comp.runs.cloud", mixed: "comp.runs.mixed" };
+const RUNS_KEY = { cloud: "comp.runs.cloud", mixed: "comp.runs.mixed", unpublished: "comp.runs.unpublished" };
+
+/** Where a company runs, as its page says it (c.runs), or «No publicado». */
+function runsBadge(runs) {
+  const cls = runs === "cloud" ? "is-cloud" : runs === "mixed" ? "is-mixed" : "is-unpublished";
+  return h("span", { class: `comp-runs ${cls}` }, t(RUNS_KEY[runs] ?? "comp.runs.unpublished"));
+}
 
 function competitorRow(data, c) {
   const source = data.sources[c.source];
@@ -192,7 +198,7 @@ function competitorRow(data, c) {
     name,
     h("td", { role: "cell", "data-label": t("comp.col.price") }, tx(c.price)),
     h("td", { role: "cell", "data-label": t("comp.col.users") }, tx(c.users)),
-    h("td", { role: "cell", "data-label": t("comp.col.runs") }, h("span", { class: "comp-runs is-cloud" }, t(RUNS_KEY[c.runs] ?? "comp.runs.cloud"))));
+    h("td", { role: "cell", "data-label": t("comp.col.runs") }, runsBadge(c.runs)));
 }
 
 function market(data) {
@@ -221,6 +227,7 @@ function market(data) {
       groups, oursBody));
   const gaps = h("ul", { class: "comp-gaps" }, data.gaps.map((item) => h("li", {}, tx(item))));
   return section("precios", "comp.h.market", "comp.market.lead",
+    h("span", { id: "competencia", class: "comp-old-anchor" }),
     table,
     h("p", { class: "hint comp-assume" }, t("comp.table.note", { date: day(data.updated) })),
     h("h3", { id: "detras" }, t("comp.h.gaps")),
@@ -272,7 +279,7 @@ function mark(level) {
 /** The company cell that starts every row of every chart; ours carries «Nosotros». */
 function companyCell(row) {
   return h("th", { scope: "row", role: "rowheader", class: "comp-co" },
-    h("span", { class: "comp-co-name" }, row.ours ? tx(row.name) : row.name),
+    h("span", { class: "comp-co-name" }, row.label ?? (row.ours ? tx(row.name) : row.name)),
     row.ours ? h("span", { class: "comp-us" }, t("comp.us")) : null);
 }
 
@@ -284,7 +291,9 @@ function chartHead(keys) {
 
 /** «Fuentes: …» with each source once, in order of first use. */
 function sourcesOf(data, ids) {
-  return sourceLine(data, [...new Set(ids.filter(Boolean))]);
+  const line = sourceLine(data, [...new Set(ids.filter(Boolean))]);
+  if (!line) return null;
+  return h("details", { class: "comp-sources" }, h("summary", {}, t("comp.sources")), line);
 }
 
 // ---- Cost of the same service ----
@@ -314,15 +323,18 @@ function rangeBar(low, high, max, ours) {
 function costRows(data, sc) {
   const cost = data.cost;
   const ours = oursCost(cost, data.rag, sc);
-  const rows = companies(data).map((row) => {
-    if (row.ours) return { row, range: ours, note: t("comp.cost.ours_note"), sources: [] };
+  const oursNote = t("comp.cost.ours_note");
+  const rows = [
+    { row: { id: "ours-haiku", ours: true, label: t("comp.cost.ours_haiku") }, range: { low: ours.haiku, high: ours.haiku }, note: oursNote, sources: [] },
+    { row: { id: "ours-opus", ours: true, label: t("comp.cost.ours_opus") }, range: { low: ours.opus, high: ours.opus }, note: oursNote, sources: [] },
+  ];
+  for (const row of companies(data).slice(1)) {
     const c = data.competitors.find((item) => item.id === row.id);
     const range = competitorCost(cost, row.id, sc);
     const spec = cost.competitors[row.id];
-    if (range) return { row, range, note: tx(spec.note), sources: [c.source, ...(spec.also ?? [])] };
-    const price = c.basis === "none" || c.id === "metaview" ? t("comp.cost.unpublished") : null;
-    return { row, range: null, note: t(`comp.cost.other.${c.kind}`), price, sources: [c.source] };
-  });
+    if (range) rows.push({ row, range, note: tx(spec.note), sources: [c.source, ...(spec.also ?? [])] });
+    else rows.push({ row, range: null, note: t(`comp.cost.other.${c.kind}`), price: c.basis === "none" ? t("comp.cost.unpublished") : null, sources: [c.source] });
+  }
   return { ours, rows };
 }
 
@@ -347,17 +359,11 @@ function costTable(data, sc) {
 function costBody(data, sc) {
   const cost = data.cost;
   const { table, ours, rows } = costTable(data, sc);
-  const price = data.rag.price;
   return [
     h("p", { class: "comp-scenario" }, icon("sessions"), t("comp.cost.line", { n: sc.agents, h: cost.hours_per_agent, hours: grouped(sc.hours), min: cost.call_minutes })),
     table,
-    h("p", { class: "hint comp-assume" }, t("comp.cost.legend")),
-    h("p", { class: "hint comp-assume" }, t("comp.cost.assume", {
-      answers: whole(ours.perHour.answersPerHour), model: price.model, margin: whole((cost.ours.token_margin - 1) * 100),
-    })),
-    h("p", { class: "hint comp-assume" }, t("comp.cost.opus", { model: cost.ours.opus.model, cost: money(ours.opus, ours.opus) })),
-    h("p", { class: "hint comp-assume" }, t("comp.cost.fair")),
-    sourcesOf(data, [price.source, cost.ours.live_source, cost.ours.analysis_source, cost.ours.token_margin_source, ...rows.flatMap((r) => r.sources)]),
+    h("p", { class: "hint comp-assume" }, t("comp.cost.legend"), " ", t("comp.cost.assume", { answers: whole(ours.perHour.haiku.answersPerHour) }), " ", t("comp.cost.fair")),
+    sourcesOf(data, [data.rag.price.source, cost.ours.live_source, cost.ours.analysis_source, cost.ours.analysis_seconds_source, ...rows.flatMap((r) => r.sources)]),
   ];
 }
 
@@ -427,28 +433,31 @@ function versusList(titleKey, name, items, cls) {
 function versusPanel(data, c) {
   const v = versus(data, c.id);
   const byId = Object.fromEntries(data.tasks.map((task) => [task.id, task]));
-  const item = (id, who) => {
+  const item = (id) => {
     const task = byId[id];
-    const cell = cellOf(task, who);
+    const theirs = cellOf(task, c.id);
     return h("li", {}, h("strong", {}, tx(task.title)),
-      cell.text ? h("span", { class: "comp-vs-note" }, who === "ours" ? t("comp.vs.ours", { text: tx(cell.text) }) : `${c.name}: ${tx(cell.text)}`) : null);
+      h("span", { class: "comp-vs-marks" },
+        h("span", {}, t("comp.us"), " ", mark(cellOf(task, "ours").level)),
+        h("span", {}, c.name, " ", mark(theirs.level))),
+      theirs.text ? h("span", { class: "comp-vs-note" }, `${c.name}: ${tx(theirs.text)}`) : null);
   };
   const source = data.sources[c.source];
   const facts = h("dl", { class: "comp-vs-facts" },
     h("div", {}, h("dt", {}, t("comp.col.price")), h("dd", {}, tx(c.price))),
     h("div", {}, h("dt", {}, t("comp.col.users")), h("dd", {}, tx(c.users))),
-    h("div", {}, h("dt", {}, t("comp.vs.where")), h("dd", {}, h("span", { class: "comp-runs is-cloud" }, t("comp.runs.cloud")))));
-  const theyMore = [...v.theyMore.map((id) => item(id, "ours")), ...(c.offers ?? []).map((offer) => h("li", {}, h("strong", {}, tx(offer))))];
+    h("div", {}, h("dt", {}, t("comp.vs.where")), h("dd", {}, runsBadge(c.runs))));
+  const theyMore = [...v.theyMore.map(item), ...(c.offers ?? []).map((offer) => h("li", {}, h("strong", {}, tx(offer))))];
   return [
     h("div", { class: "comp-vs-head" },
       h("h3", {}, c.name, " ", h("span", { class: "comp-vs-kind" }, t(`comp.kind.${c.kind}`))),
       facts,
       source ? h("p", { class: "hint comp-source" }, sourceLink(data, c.source), " ", t("comp.seen.on", { date: day(source.seen) })) : null),
     h("div", { class: "comp-vs-grid" },
-      versusList("comp.vs.we_more", c.name, v.weMore.map((id) => item(id, c.id)), "is-yes"),
-      versusList("comp.vs.unknown", c.name, v.unknown.map((id) => item(id, c.id)), "is-unknown"),
+      versusList("comp.vs.we_more", c.name, v.weMore.map(item), "is-yes"),
+      versusList("comp.vs.unknown", c.name, v.unknown.map(item), "is-unknown"),
       versusList("comp.vs.they_more", c.name, theyMore, "is-they"),
-      versusList("comp.vs.both", c.name, v.both.map((id) => item(id, null)), "is-both")),
+      versusList("comp.vs.both", c.name, v.both.map(item), "is-both")),
     sourcesOf(data, [...data.tasks.map((task) => cellOf(task, c.id).source), ...(c.offers ?? []).map((offer) => offer.source)]),
   ];
 }
