@@ -1749,6 +1749,9 @@ table.data.of-table th[scope="row"] { position: sticky; left: 0; z-index: 1; bac
 .cov-point.is-asked .iv-point-mark { color: var(--green-9); }
 .cov-point.is-asked_unknown .iv-point-mark, .cov-point.is-unknown .iv-point-mark { color: var(--danger); }
 .cov-mark { min-height: 2rem; }
+/* A concept's words that wrap (phone) start under its text, not under its mark. */
+.cov-point { padding-left: calc(1.1em + var(--s-2)); }
+.cov-point > .iv-point-mark { margin-left: calc(-1.1em - var(--s-2)); }
 .cov-next { display: flex; flex-direction: column; gap: 2px; padding: var(--s-2) var(--s-3); border-radius: var(--r-md); border: 1px solid var(--line); background: var(--surface-2); }
 .cov-next p { margin: 0; }
 .cov-next-head { font-size: var(--fs-sm); color: var(--muted); font-weight: 600; }
