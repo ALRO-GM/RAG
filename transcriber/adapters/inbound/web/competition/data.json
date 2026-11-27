@@ -143,6 +143,84 @@
   "live_assist_config": {
    "label": "config/products/live_assist.*.yaml",
    "url": "https://github.com/ALRO-GM/RAG/tree/main/config/products"
+  },
+  "talkdesk_assist": {
+   "label": "Talkdesk, Copilot",
+   "url": "https://www.talkdesk.com/agent-assist/",
+   "seen": "2026-11-24"
+  },
+  "talkdesk_qm": {
+   "label": "Talkdesk, QM Assist",
+   "url": "https://support.talkdesk.com/hc/en-us/articles/50371682083739-Talkdesk-QM-Using-Per-Question-Evaluation-Modes-and-AI-Rewrite",
+   "seen": "2026-11-24"
+  },
+  "nice_copilot": {
+   "label": "NICE, Copilot for Agents",
+   "url": "https://www.nice.com/products/copilot-for-agents",
+   "seen": "2026-11-24"
+  },
+  "five9_assist": {
+   "label": "Five9, AI Agent Assist",
+   "url": "https://www.five9.com/products/capabilities/agent-assist",
+   "seen": "2026-11-24"
+  },
+  "twilio_ci": {
+   "label": "Twilio, Conversational Intelligence",
+   "url": "https://www.twilio.com/en-us/products/conversational-ai/conversational-intelligence",
+   "seen": "2026-11-24"
+  },
+  "twilio_copilot": {
+   "label": "Twilio Docs, Agent Copilot",
+   "url": "https://www.twilio.com/docs/flex/admin-guide/setup/copilot",
+   "seen": "2026-11-24"
+  },
+  "twilio_ai_pricing": {
+   "label": "Twilio, Conversational AI pricing",
+   "url": "https://www.twilio.com/en-us/products/conversational-ai/pricing",
+   "seen": "2026-11-24"
+  },
+  "cresta_assist": {
+   "label": "Cresta, Agent Assist",
+   "url": "https://cresta.com/product/agent-assist",
+   "seen": "2026-11-24"
+  },
+  "observe_autoqa": {
+   "label": "Observe.AI, Auto QA",
+   "url": "https://observe.ai/platform/auto-qa",
+   "seen": "2026-11-24"
+  },
+  "observe_llm": {
+   "label": "Observe.AI, product summary",
+   "url": "https://observe.ai/llm-info",
+   "seen": "2026-11-24"
+  },
+  "brighthire_home": {
+   "label": "BrightHire",
+   "url": "https://brighthire.com/",
+   "seen": "2026-11-24"
+  },
+  "hirevue_platform": {
+   "label": "HireVue, Platform",
+   "url": "https://www.hirevue.com/platform",
+   "seen": "2026-11-24"
+  },
+  "polyai_home": {
+   "label": "PolyAI",
+   "url": "https://poly.ai/",
+   "seen": "2026-11-24"
+  },
+  "anthropic_haiku55": {
+   "label": "Anthropic, Claude Haiku 5.5",
+   "url": "https://platform.claude.com/docs/en/models/haiku-5-5/overview",
+   "seen": "2026-11-27"
+  },
+  "model_comparison": {
+   "label": "docs/skills/MODEL_COMPARISON.md",
+   "url": "https://github.com/ALRO-GM/RAG/blob/main/docs/skills/MODEL_COMPARISON.md"
+  },
+  "simulation": {
+   "label": "docs/skills/SIMULATION.md §3",
+   "url": "https://github.com/ALRO-GM/RAG/blob/main/docs/skills/SIMULATION.md"
   }
  },
  "steps": [
@@ -415,6 +493,7 @@
  },
  "competitors": [
   {
+   "id": "talkdesk",
    "name": "Talkdesk",
    "kind": "callcentre",
    "basis": "official",
@@ -427,9 +506,17 @@
    "users": {
     "es": "Por usuario. Plan Express: 25 licencias, sin permanencia",
     "en": "Per user. Express plan: 25 licences, no commitment"
-   }
+   },
+   "offers": [
+    {
+     "source": "talkdesk",
+     "es": "Centralita con voz y canales digitales",
+     "en": "A phone system with voice and digital channels"
+    }
+   ]
   },
   {
+   "id": "nice",
    "name": "NICE CXone",
    "kind": "callcentre",
    "basis": "official",
@@ -442,9 +529,17 @@
    "users": {
     "es": "Por agente, factura mensual",
     "en": "Per agent, billed monthly"
-   }
+   },
+   "offers": [
+    {
+     "source": "nice",
+     "es": "Centralita en la nube con calidad y resumen automático",
+     "en": "A cloud phone system with quality checks and automatic summaries"
+    }
+   ]
   },
   {
+   "id": "five9",
    "name": "Five9",
    "kind": "callcentre",
    "basis": "official",
@@ -457,9 +552,17 @@
    "users": {
     "es": "Mínimo de 50 puestos",
     "en": "Minimum of 50 seats"
-   }
+   },
+   "offers": [
+    {
+     "source": "five9",
+     "es": "Centralita en la nube con minutos de IA incluidos",
+     "en": "A cloud phone system with AI minutes included"
+    }
+   ]
   },
   {
+   "id": "twilio",
    "name": "Twilio",
    "kind": "callcentre",
    "basis": "official",
@@ -472,9 +575,17 @@
    "users": {
     "es": "Pago por uso o por usuario",
     "en": "Pay per use or per user"
-   }
+   },
+   "offers": [
+    {
+     "source": "twilio_ci",
+     "es": "Teléfono, SMS, WhatsApp y chat",
+     "en": "Phone, SMS, WhatsApp and chat"
+    }
+   ]
   },
   {
+   "id": "cresta",
    "name": "Cresta",
    "kind": "callcentre",
    "basis": "marketplace",
@@ -487,9 +598,17 @@
    "users": {
     "es": "Contrato anual, no cancelable ni reembolsable",
     "en": "Yearly contract, not cancellable or refundable"
-   }
+   },
+   "offers": [
+    {
+     "source": "cresta_assist",
+     "es": "Chat con el supervisor durante la llamada",
+     "en": "Chat with the supervisor during the call"
+    }
+   ]
   },
   {
+   "id": "observe",
    "name": "Observe.AI",
    "kind": "callcentre",
    "basis": "marketplace",
@@ -502,9 +621,17 @@
    "users": {
     "es": "Por agente; contratos de 12, 24 o 36 meses, sin reembolso",
     "en": "Per agent; 12, 24 or 36-month contracts, no refunds"
-   }
+   },
+   "offers": [
+    {
+     "source": "observe_llm",
+     "es": "Revisión de calidad calibrada por personas",
+     "en": "Quality review calibrated by people"
+    }
+   ]
   },
   {
+   "id": "brighthire",
    "name": "BrightHire",
    "kind": "interviews",
    "basis": "none",
@@ -517,9 +644,22 @@
    "users": {
     "es": "Presupuesto según candidatos, entrevistas o tamaño de la empresa",
     "en": "Quote by applicants, interviews or company size"
-   }
+   },
+   "offers": [
+    {
+     "source": "brighthire",
+     "es": "Más de 30 idiomas",
+     "en": "More than 30 languages"
+    },
+    {
+     "source": "brighthire_home",
+     "es": "Conexión con programas de selección (ATS)",
+     "en": "Links to recruiting software (ATS)"
+    }
+   ]
   },
   {
+   "id": "hirevue",
    "name": "HireVue",
    "kind": "interviews",
    "basis": "none",
@@ -532,9 +672,17 @@
    "users": {
     "es": "Sin dato público",
     "en": "Not published"
-   }
+   },
+   "offers": [
+    {
+     "source": "hirevue_platform",
+     "es": "Entrevista en vídeo y pruebas de programación",
+     "en": "Video interviews and coding tests"
+    }
+   ]
   },
   {
+   "id": "metaview",
    "name": "Metaview",
    "kind": "interviews",
    "basis": "official",
@@ -547,9 +695,22 @@
    "users": {
     "es": "Por usuario",
     "en": "Per user"
-   }
+   },
+   "offers": [
+    {
+     "source": "metaview",
+     "es": "Conexión con Ashby, Greenhouse, Lever y otros",
+     "en": "Links to Ashby, Greenhouse, Lever and others"
+    },
+    {
+     "source": "metaview",
+     "es": "Certificación SOC 2 Tipo II",
+     "en": "SOC 2 Type II certification"
+    }
+   ]
   },
   {
+   "id": "retell",
    "name": "Retell AI",
    "kind": "voicebot",
    "basis": "official",
@@ -562,9 +723,17 @@
    "users": {
     "es": "Sin mínimo; 20 llamadas a la vez incluidas, 8 USD al mes por cada línea más",
     "en": "No minimum; 20 calls at once included, 8 USD a month per extra line"
-   }
+   },
+   "offers": [
+    {
+     "source": "retell",
+     "es": "Teléfono: Twilio, Telnyx o tu propia línea",
+     "en": "Phone: Twilio, Telnyx or your own line"
+    }
+   ]
   },
   {
+   "id": "vapi",
    "name": "Vapi",
    "kind": "voicebot",
    "basis": "official",
@@ -577,9 +746,17 @@
    "users": {
     "es": "De 4 a 30 llamadas a la vez según el plan",
     "en": "4 to 30 calls at once depending on the plan"
-   }
+   },
+   "offers": [
+    {
+     "source": "vapi",
+     "es": "Teléfono, SIP y web",
+     "en": "Phone, SIP and web"
+    }
+   ]
   },
   {
+   "id": "polyai",
    "name": "PolyAI",
    "kind": "voicebot",
    "basis": "official",
@@ -592,7 +769,14 @@
    "users": {
     "es": "10 llamadas a la vez (API)",
     "en": "10 calls at once (API)"
-   }
+   },
+   "offers": [
+    {
+     "source": "polyai_home",
+     "es": "Herramienta para diseñar las conversaciones",
+     "en": "A tool to design the conversations"
+    }
+   ]
   }
  ],
  "ours": {
@@ -623,6 +807,17 @@
     "en": "It becomes text on your own server with a consumer graphics card. According to their pages, the companies in the table are offered as a cloud service."
    },
    "source": "live_asr"
+  },
+  {
+   "title": {
+    "es": "Tu contenido mejora con cada equipo",
+    "en": "Your content improves with each team"
+   },
+   "body": {
+    "es": "Cada equipo sube y cambia sus documentos y su plan de entrevista, y cada cambio queda guardado. No aprende solo de las llamadas.",
+    "en": "Each team uploads and changes its documents and its interview plan, and every change is kept. It does not learn from the calls by itself."
+   },
+   "source": "knowledge"
   },
   {
    "title": {
@@ -802,5 +997,800 @@
     "en": "Measure accuracy and timings with real people and their consent."
    }
   }
- ]
+ ],
+ "tasks": [
+  {
+   "id": "interviews",
+   "title": {
+    "es": "Entrevistas de trabajo",
+    "en": "Job interviews"
+   },
+   "question": {
+    "es": "Ayuda al entrevistador o entrevistador de IA",
+    "en": "Help for the interviewer or an AI interviewer"
+   },
+   "ours": {
+    "level": "yes",
+    "source": "assist_modes",
+    "text": {
+     "es": "Plan desde la oferta, lo que falta por preguntar y preguntas a evitar; y entrevistador por voz",
+     "en": "Plan from the job offer, what is still to ask and questions to avoid; and a voice interviewer"
+    }
+   },
+   "cells": {
+    "brighthire": {
+     "level": "yes",
+     "source": "brighthire_home",
+     "text": {
+      "es": "Guía en directo al entrevistador y entrevistador de IA que puntúa",
+      "en": "Live guide for the interviewer and an AI interviewer that scores"
+     }
+    },
+    "hirevue": {
+     "level": "yes",
+     "source": "hirevue_platform",
+     "text": {
+      "es": "Entrevista en vídeo y entrevistador de IA",
+      "en": "Video interviews and an AI interviewer"
+     }
+    },
+    "metaview": {
+     "level": "yes",
+     "source": "metaview",
+     "text": {
+      "es": "Entrevistador de IA",
+      "en": "AI interviewer"
+     }
+    }
+   }
+  },
+  {
+   "id": "where",
+   "title": {
+    "es": "Dónde se procesa la voz",
+    "en": "Where the voice is processed"
+   },
+   "question": {
+    "es": "¿La voz se queda en tu servidor?",
+    "en": "Does the voice stay on your server?"
+   },
+   "ours": {
+    "level": "yes",
+    "source": "live_asr",
+    "text": {
+     "es": "En tu servidor; el texto sí va a Claude (Anthropic)",
+     "en": "On your server; the text does go to Claude (Anthropic)"
+    }
+   },
+   "cells": {
+    "talkdesk": {
+     "level": "no",
+     "source": "talkdesk",
+     "text": {
+      "es": "En su nube, según su web",
+      "en": "In its cloud, according to its website"
+     }
+    },
+    "nice": {
+     "level": "no",
+     "source": "nice",
+     "text": {
+      "es": "En su nube, según su web",
+      "en": "In its cloud, according to its website"
+     }
+    },
+    "five9": {
+     "level": "no",
+     "source": "five9",
+     "text": {
+      "es": "En su nube, según su web",
+      "en": "In its cloud, according to its website"
+     }
+    },
+    "twilio": {
+     "level": "no",
+     "source": "twilio",
+     "text": {
+      "es": "En su nube, según su web",
+      "en": "In its cloud, according to its website"
+     }
+    },
+    "cresta": {
+     "level": "no",
+     "source": "cresta",
+     "text": {
+      "es": "En su nube, según su web",
+      "en": "In its cloud, according to its website"
+     }
+    },
+    "observe": {
+     "level": "no",
+     "source": "observe",
+     "text": {
+      "es": "En su nube, según su web",
+      "en": "In its cloud, according to its website"
+     }
+    },
+    "brighthire": {
+     "level": "no",
+     "source": "brighthire",
+     "text": {
+      "es": "En su nube, según su web",
+      "en": "In its cloud, according to its website"
+     }
+    },
+    "hirevue": {
+     "level": "no",
+     "source": "hirevue",
+     "text": {
+      "es": "En su nube, según su web",
+      "en": "In its cloud, according to its website"
+     }
+    },
+    "metaview": {
+     "level": "no",
+     "source": "metaview",
+     "text": {
+      "es": "En su nube, según su web",
+      "en": "In its cloud, according to its website"
+     }
+    },
+    "retell": {
+     "level": "no",
+     "source": "retell",
+     "text": {
+      "es": "En su nube, según su web",
+      "en": "In its cloud, according to its website"
+     }
+    },
+    "vapi": {
+     "level": "no",
+     "source": "vapi",
+     "text": {
+      "es": "En su nube, según su web",
+      "en": "In its cloud, according to its website"
+     }
+    },
+    "polyai": {
+     "level": "no",
+     "source": "polyai",
+     "text": {
+      "es": "En su nube, según su web",
+      "en": "In its cloud, according to its website"
+     }
+    }
+   }
+  },
+  {
+   "id": "must_say",
+   "title": {
+    "es": "Lo que hay que decir",
+    "en": "What must be said"
+   },
+   "question": {
+    "es": "Comprueba en directo que se dicen las frases obligatorias",
+    "en": "Checks live that the required sentences are said"
+   },
+   "ours": {
+    "level": "yes",
+    "source": "mandatory",
+    "text": {
+     "es": "Lista en rojo hasta que se dice; el acta dice qué faltó",
+     "en": "A list in red until it is said; the record says what was missing"
+    }
+   },
+   "cells": {
+    "talkdesk": {
+     "level": "partial",
+     "source": "talkdesk_assist",
+     "text": {
+      "es": "Guiones paso a paso; no dice si comprueba lo dicho",
+      "en": "Step-by-step scripts; it does not say whether it checks what was said"
+     }
+    },
+    "five9": {
+     "level": "yes",
+     "source": "five9_assist",
+     "text": {
+      "es": "Listas de comprobación en directo",
+      "en": "Live checklists"
+     }
+    },
+    "twilio": {
+     "level": "yes",
+     "source": "twilio_ci",
+     "text": {
+      "es": "Avisa si no se sigue el guion durante la llamada",
+      "en": "Flags script violations during the call"
+     }
+    },
+    "cresta": {
+     "level": "yes",
+     "source": "cresta_assist",
+     "text": {
+      "es": "Lista de pasos durante la llamada",
+      "en": "A list of steps during the call"
+     }
+    }
+   }
+  },
+  {
+   "id": "live_docs",
+   "title": {
+    "es": "Ayuda en directo con tus documentos",
+    "en": "Live help with your documents"
+   },
+   "question": {
+    "es": "Propone qué decir buscando en los documentos de la empresa",
+    "en": "Suggests what to say from the company's documents"
+   },
+   "ours": {
+    "level": "yes",
+    "source": "live_measures",
+    "text": {
+     "es": "Busca en tus documentos y propone qué decir en 1,5–2,7 s (grabaciones sintéticas)",
+     "en": "Searches your documents and suggests what to say in 1.5–2.7 s (synthetic recordings)"
+    }
+   },
+   "cells": {
+    "talkdesk": {
+     "level": "yes",
+     "source": "talkdesk_assist",
+     "text": {
+      "es": "Respuestas desde tu base de conocimiento (complemento)",
+      "en": "Answers from your knowledge base (add-on)"
+     }
+    },
+    "nice": {
+     "level": "yes",
+     "source": "nice_copilot",
+     "text": {
+      "es": "Conocimiento y siguiente paso durante la llamada",
+      "en": "Knowledge and next steps during the call"
+     }
+    },
+    "five9": {
+     "level": "partial",
+     "source": "five9_assist",
+     "text": {
+      "es": "Tarjetas de guía en directo; no dice de qué documentos salen",
+      "en": "Live guidance cards; it does not say which documents they come from"
+     }
+    },
+    "twilio": {
+     "level": "partial",
+     "source": "twilio_copilot",
+     "text": {
+      "es": "Respuestas sugeridas con tus fuentes; en directo solo en inglés y en pruebas",
+      "en": "Suggested answers from your sources; live only in English and in beta"
+     }
+    },
+    "cresta": {
+     "level": "yes",
+     "source": "cresta_assist",
+     "text": {
+      "es": "Respuestas con sus fuentes citadas",
+      "en": "Answers with their sources cited"
+     }
+    },
+    "observe": {
+     "level": "partial",
+     "source": "observe",
+     "text": {
+      "es": "Ayuda en directo; con tus documentos, no comprobado",
+      "en": "Live help; with your documents, not checked"
+     }
+    }
+   }
+  },
+  {
+   "id": "content",
+   "title": {
+    "es": "Tu contenido, al día",
+    "en": "Your content, up to date"
+   },
+   "question": {
+    "es": "Subes y cambias tus documentos tú mismo",
+    "en": "You upload and change your documents yourself"
+   },
+   "ours": {
+    "level": "yes",
+    "source": "knowledge",
+    "text": {
+     "es": "PDF de hasta 500 MB y vídeos de hasta 1 GB; el plan de entrevista guarda cada versión",
+     "en": "PDFs up to 500 MB and videos up to 1 GB; the interview plan keeps every version"
+    }
+   },
+   "cells": {
+    "talkdesk": {
+     "level": "unknown",
+     "source": "talkdesk_assist",
+     "text": {
+      "es": "Usa tu base de conocimiento; cómo se actualiza, no comprobado",
+      "en": "Uses your knowledge base; how it is updated, not checked"
+     }
+    },
+    "nice": {
+     "level": "unknown",
+     "source": "nice_copilot",
+     "text": {
+      "es": "Funciona mejor con su gestor de conocimiento",
+      "en": "Works best with its own knowledge manager"
+     }
+    },
+    "twilio": {
+     "level": "yes",
+     "source": "twilio_copilot",
+     "text": {
+      "es": "Subes tus fuentes para las respuestas",
+      "en": "You upload your sources for the answers"
+     }
+    },
+    "cresta": {
+     "level": "unknown",
+     "source": "cresta_assist",
+     "text": {
+      "es": "Responde con tus fuentes; cómo se suben, no comprobado",
+      "en": "Answers from your sources; how they are uploaded, not checked"
+     }
+    },
+    "retell": {
+     "level": "yes",
+     "source": "retell",
+     "text": {
+      "es": "Bases de conocimiento: 10 gratis, 8 USD al mes cada una más",
+      "en": "Knowledge bases: 10 free, 8 USD a month for each extra one"
+     }
+    }
+   }
+  },
+  {
+   "id": "transcribe",
+   "title": {
+    "es": "Pasar la conversación a texto",
+    "en": "Turning the conversation into text"
+   },
+   "question": {
+    "es": "Texto de la llamada y quién habla",
+    "en": "Text of the call and who is speaking"
+   },
+   "ours": {
+    "level": "yes",
+    "source": "mono",
+    "text": {
+     "es": "En directo y en grabaciones; un canal por persona o un solo micrófono",
+     "en": "Live and from recordings; one channel per person or a single microphone"
+    }
+   },
+   "cells": {
+    "talkdesk": {
+     "level": "yes",
+     "source": "talkdesk_assist",
+     "text": {
+      "es": "Transcripción en directo (complemento)",
+      "en": "Live transcription (add-on)"
+     }
+    },
+    "five9": {
+     "level": "yes",
+     "source": "five9_assist",
+     "text": {
+      "es": "Transcripción en tiempo real",
+      "en": "Real-time transcription"
+     }
+    },
+    "twilio": {
+     "level": "yes",
+     "source": "twilio_copilot",
+     "text": {
+      "es": "Transcripción en directo, cobrada aparte",
+      "en": "Live transcription, billed separately"
+     }
+    },
+    "cresta": {
+     "level": "yes",
+     "source": "cresta_assist",
+     "text": {
+      "es": "Transcripción en directo",
+      "en": "Live transcription"
+     }
+    },
+    "brighthire": {
+     "level": "partial",
+     "source": "brighthire_home",
+     "text": {
+      "es": "Notas de la entrevista con IA",
+      "en": "AI notes of the interview"
+     }
+    },
+    "metaview": {
+     "level": "partial",
+     "source": "metaview",
+     "text": {
+      "es": "Notas de la entrevista",
+      "en": "Interview notes"
+     }
+    }
+   }
+  },
+  {
+   "id": "after",
+   "title": {
+    "es": "Análisis después de la llamada",
+    "en": "Analysis after the call"
+   },
+   "question": {
+    "es": "Informe o revisión al terminar",
+    "en": "A report or review at the end"
+   },
+   "ours": {
+    "level": "yes",
+    "source": "settings",
+    "text": {
+     "es": "Informe y análisis de habilidades de cada persona",
+     "en": "A report and each person's skills analysis"
+    }
+   },
+   "cells": {
+    "talkdesk": {
+     "level": "yes",
+     "source": "talkdesk_qm",
+     "text": {
+      "es": "Evaluación de llamadas con IA (complemento)",
+      "en": "AI call evaluation (add-on)"
+     }
+    },
+    "nice": {
+     "level": "yes",
+     "source": "nice",
+     "text": {
+      "es": "Calidad y resumen automático",
+      "en": "Quality checks and automatic summary"
+     }
+    },
+    "five9": {
+     "level": "yes",
+     "source": "five9_assist",
+     "text": {
+      "es": "Resumen de la llamada",
+      "en": "Call summary"
+     }
+    },
+    "twilio": {
+     "level": "yes",
+     "source": "twilio_copilot",
+     "text": {
+      "es": "Notas de cierre y resumen",
+      "en": "Wrap-up notes and summary"
+     }
+    },
+    "cresta": {
+     "level": "yes",
+     "source": "cresta_assist",
+     "text": {
+      "es": "Resumen con motivo, solución y resultado",
+      "en": "Summary with reason, resolution and outcome"
+     }
+    },
+    "observe": {
+     "level": "yes",
+     "source": "observe_autoqa",
+     "text": {
+      "es": "Revisión de calidad automática",
+      "en": "Automatic quality review"
+     }
+    },
+    "brighthire": {
+     "level": "yes",
+     "source": "brighthire_home",
+     "text": {
+      "es": "Notas y ficha de evaluación rellenada",
+      "en": "Notes and a filled-in scorecard"
+     }
+    },
+    "metaview": {
+     "level": "yes",
+     "source": "metaview",
+     "text": {
+      "es": "Notas e informes",
+      "en": "Notes and reports"
+     }
+    }
+   }
+  },
+  {
+   "id": "voicebot",
+   "title": {
+    "es": "Asistente de voz",
+    "en": "Voice assistant"
+   },
+   "question": {
+    "es": "Un asistente que habla y atiende solo",
+    "en": "An assistant that talks and answers on its own"
+   },
+   "ours": {
+    "level": "partial",
+    "source": "voicebot",
+    "text": {
+     "es": "Habla por el micrófono del navegador; sin teléfono todavía",
+     "en": "Talks through the browser's microphone; no phone yet"
+    }
+   },
+   "cells": {
+    "twilio": {
+     "level": "yes",
+     "source": "twilio_ai_pricing",
+     "text": {
+      "es": "ConversationRelay, por minuto",
+      "en": "ConversationRelay, per minute"
+     }
+    },
+    "observe": {
+     "level": "partial",
+     "source": "observe_llm",
+     "text": {
+      "es": "Agentes de IA para clientes; por voz, no comprobado",
+      "en": "AI agents for customers; by voice, not checked"
+     }
+    },
+    "retell": {
+     "level": "yes",
+     "source": "retell",
+     "text": {
+      "es": "Por teléfono",
+      "en": "By phone"
+     }
+    },
+    "vapi": {
+     "level": "yes",
+     "source": "vapi",
+     "text": {
+      "es": "Por teléfono, SIP o web",
+      "en": "By phone, SIP or web"
+     }
+    },
+    "polyai": {
+     "level": "yes",
+     "source": "polyai",
+     "text": {
+      "es": "Por minuto conectado; telefonía aparte",
+      "en": "Per connected minute; telephony separate"
+     }
+    }
+   }
+  },
+  {
+   "id": "limits",
+   "title": {
+    "es": "Varias conversaciones a la vez",
+    "en": "Several conversations at once"
+   },
+   "question": {
+    "es": "Cuántas personas o llamadas a la vez",
+    "en": "How many people or calls at once"
+   },
+   "ours": {
+    "level": "no",
+    "source": "live_session",
+    "text": {
+     "es": "Una conversación en directo a la vez por servidor",
+     "en": "One live conversation at a time per server"
+    }
+   },
+   "cells": {
+    "talkdesk": {
+     "level": "yes",
+     "source": "talkdesk",
+     "text": {
+      "es": "Por usuario; plan Express de 25 licencias",
+      "en": "Per user; Express plan of 25 licences"
+     }
+    },
+    "nice": {
+     "level": "yes",
+     "source": "nice",
+     "text": {
+      "es": "Por agente",
+      "en": "Per agent"
+     }
+    },
+    "five9": {
+     "level": "yes",
+     "source": "five9",
+     "text": {
+      "es": "Por usuario simultáneo; mínimo 50 puestos",
+      "en": "Per concurrent user; minimum 50 seats"
+     }
+    },
+    "twilio": {
+     "level": "yes",
+     "source": "twilio",
+     "text": {
+      "es": "Por uso o por usuario",
+      "en": "Per use or per user"
+     }
+    },
+    "cresta": {
+     "level": "yes",
+     "source": "cresta",
+     "text": {
+      "es": "Hasta 100.000 llamadas al año",
+      "en": "Up to 100,000 calls a year"
+     }
+    },
+    "observe": {
+     "level": "yes",
+     "source": "observe",
+     "text": {
+      "es": "Por agente",
+      "en": "Per agent"
+     }
+    },
+    "brighthire": {
+     "level": "unknown",
+     "source": "brighthire",
+     "text": {
+      "es": "Presupuesto según candidatos o entrevistas",
+      "en": "Quote by applicants or interviews"
+     }
+    },
+    "metaview": {
+     "level": "yes",
+     "source": "metaview",
+     "text": {
+      "es": "Por usuario",
+      "en": "Per user"
+     }
+    },
+    "retell": {
+     "level": "yes",
+     "source": "retell",
+     "text": {
+      "es": "20 llamadas a la vez incluidas",
+      "en": "20 calls at once included"
+     }
+    },
+    "vapi": {
+     "level": "yes",
+     "source": "vapi",
+     "text": {
+      "es": "De 4 a 30 llamadas a la vez",
+      "en": "4 to 30 calls at once"
+     }
+    },
+    "polyai": {
+     "level": "yes",
+     "source": "polyai",
+     "text": {
+      "es": "10 llamadas a la vez (API)",
+      "en": "10 calls at once (API)"
+     }
+    }
+   }
+  }
+ ],
+ "cost": {
+  "call_minutes": 10,
+  "hours_per_agent": 80,
+  "scenarios": [
+   {
+    "id": "small",
+    "agents": 5
+   },
+   {
+    "id": "large",
+    "agents": 50
+   }
+  ],
+  "ours": {
+   "live_calls": 13,
+   "live_seconds": 108,
+   "live_source": "live_measures",
+   "analysis_input_tokens": 292614,
+   "analysis_output_tokens": 88498,
+   "analysis_source": "model_comparison",
+   "analysis_seconds": 881.8,
+   "analysis_seconds_source": "simulation",
+   "token_margin": 1.3,
+   "token_margin_source": "anthropic_haiku55",
+   "opus": {
+    "model": "Claude Opus 5.5",
+    "input_per_mtok": 4,
+    "output_per_mtok": 20,
+    "source": "anthropic_pricing"
+   }
+  },
+  "competitors": {
+   "talkdesk": {
+    "low": {
+     "seat": 105
+    },
+    "high": {
+     "seat": 225
+    },
+    "more": true,
+    "note": {
+     "es": "Sin el copiloto de IA: no tiene precio publicado",
+     "en": "Without the AI copilot: it has no published price"
+    }
+   },
+   "nice": {
+    "low": {
+     "seat": 110
+    },
+    "high": {
+     "seat": 249,
+     "call": 0.25
+    },
+    "more": true,
+    "note": {
+     "es": "Sin los copilotos: se cobran por uso, sin tarifa publicada",
+     "en": "Without the copilots: billed by usage, no published rate"
+    }
+   },
+   "five9": {
+    "low": {
+     "seat": 119
+    },
+    "high": {
+     "seat": 159
+    },
+    "min_seats": 50,
+    "more": true,
+    "note": {
+     "es": "Mínimo 50 puestos; puede haber cargos por uso",
+     "en": "Minimum 50 seats; usage charges may apply"
+    }
+   },
+   "twilio": {
+    "low": {
+     "minute": 0.035,
+     "hour": 1
+    },
+    "high": {
+     "minute": 0.035,
+     "seat": 150
+    },
+    "more": true,
+    "note": {
+     "es": "Copiloto en pruebas más Flex; la transcripción se cobra aparte",
+     "en": "Copilot in beta plus Flex; transcription is billed separately"
+    },
+    "also": [
+     "twilio_copilot"
+    ]
+   },
+   "cresta": {
+    "low": {
+     "year": 150000,
+     "year_calls": 100000,
+     "extra_call": 1.5
+    },
+    "high": {
+     "year": 150000,
+     "year_calls": 100000,
+     "extra_call": 1.5
+    },
+    "more": false,
+    "note": {
+     "es": "Contrato anual de 150.000 USD hasta 100.000 llamadas; 1,50 USD por llamada más",
+     "en": "Yearly contract of 150,000 USD up to 100,000 calls; 1.50 USD per extra call"
+    }
+   },
+   "observe": {
+    "low": {
+     "seat_year": 828
+    },
+    "high": {
+     "seat": 828
+    },
+    "more": false,
+    "unclear": true,
+    "note": {
+     "es": "Su anuncio no deja claro si los 828 USD por agente son al mes o al año",
+     "en": "Its listing does not make clear whether the 828 USD per agent are per month or per year"
+    }
+   }
+  }
+ }
 }

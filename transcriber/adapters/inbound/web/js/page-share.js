@@ -1,5 +1,5 @@
 // «Compartir pantalla» on the pages that are documents of their own
-// (#284): study.html, research.html and competition.html (#291). They
+// (#284): study.html, research.html and info.html (#291, #295). They
 // are not part of the application (index.html), so going there unloads
 // it; the shared session goes on because each of these pages installs
 // the same component (js/share.js) and resumes it with the token this

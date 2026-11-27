@@ -27,7 +27,7 @@ export const ADMIN_TOOLS = [
   { id: "lab", href: "#/lab", icon: "lab" },
   { id: "study", href: "study.html", icon: "study" },
   { id: "research", href: "research.html", icon: "research" },
-  { id: "competition", href: "competition.html", icon: "competition" },
+  { id: "competition", href: "info.html", icon: "competition" },
 ];
 
 /** How many sessions the home lists. */

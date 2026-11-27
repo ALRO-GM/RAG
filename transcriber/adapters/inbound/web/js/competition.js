@@ -1,7 +1,8 @@
-// Entry point of competition.html (#291): loads competition/data.json
-// (kept by hand; how to update it: docs/web/COMPETITION_PAGE.md) and draws
-// the page; redraws on a language change (nothing depends on the width:
-// the bars stretch with their box).
+// Entry point of info.html («Competencia» in #291, «Info» since #295):
+// loads competition/data.json (kept by hand; how to update it:
+// docs/web/COMPETITION_PAGE.md) and draws the page; redraws on a language
+// change (nothing depends on the width: the bars stretch with their box).
+// The chosen scenario and company survive a redraw (kept by the view).
 
 import { translateStatic } from "./i18n.js";
 import { installLanguageSwitch } from "./lang-switch.js";

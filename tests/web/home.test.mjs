@@ -45,9 +45,9 @@ test("every admin tool is named and described in both languages and reachable fr
   assert.match(group, /aria-labelledby="nav-admin-title"/);
 });
 
-test("research.html, study.html and competition.html have the same worker / Administración split as index.html", () => {
+test("research.html, study.html and info.html have the same worker / Administración split as index.html", () => {
   const index = navSplit("index.html");
-  for (const page of ["research.html", "study.html", "competition.html"]) {
+  for (const page of ["research.html", "study.html", "info.html"]) {
     const other = navSplit(page);
     assert.deepEqual(other.work, index.work, page);
     assert.deepEqual(other.admin, index.admin, page);

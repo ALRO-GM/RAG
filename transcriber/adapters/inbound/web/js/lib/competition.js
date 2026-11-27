@@ -1,8 +1,9 @@
-// Pure logic of the «Competencia» page (competition.html, #291): checks
-// the data file, picks a text in the page's language, groups the
-// competitors and computes the «con RAG / sin RAG» estimate from the
-// measured inputs of competition/data.json. No DOM and no text for people
-// here, so node --test can check it.
+// Pure logic of the «Info» page (info.html; «Competencia» in #291, renamed
+// in #295): checks the data file, picks a text in the page's language,
+// groups the competitors, computes the «con RAG / sin RAG» estimate, the
+// cost of the same service per scenario and the task-by-task comparison
+// from competition/data.json. No DOM and no text for people here, so
+// node --test can check it.
 
 /** The data file's schema this page understands. */
 export const SCHEMA = "competition.v1";
@@ -35,7 +36,9 @@ export function isCompetitionData(data) {
     && Array.isArray(data.steps) && data.steps.length > 0
     && Array.isArray(data.competitors) && data.competitors.length > 0
     && Array.isArray(data.models) && data.models.length > 0
-    && Boolean(data.rag?.price) && Array.isArray(data.rag?.libraries);
+    && Boolean(data.rag?.price) && Array.isArray(data.rag?.libraries)
+    && Array.isArray(data.tasks) && data.tasks.length > 0
+    && Array.isArray(data.cost?.scenarios) && data.cost.scenarios.length > 0;
 }
 
 /** The competitors of one kind, in file order. */
@@ -120,5 +123,109 @@ export function citedSources(data) {
   for (const lib of data.rag.libraries) add(lib.source, `rag.libraries.${lib.id}`);
   if (data.rag.acts) add(data.rag.acts.source, "rag.acts");
   for (const item of data.content_today ?? []) add(item.source, "content_today");
+  return cited;
+}
+
+// ---- «Info» (#295): tasks, the cost of the same service, one company ----
+
+/** How a company answers one task: yes, in part, no, or not published / not checked. */
+export const LEVELS = ["yes", "partial", "no", "unknown"];
+
+/** Order of a level when two companies are compared (unknown is not comparable). */
+const RANK = { yes: 2, partial: 1, no: 0 };
+
+/** The rows of every chart, in the same order: us first, then the competitors in file order. */
+export function companies(data) {
+  return [{ id: "ours", ours: true, name: data.ours.name }, ...data.competitors.map((c) => ({ id: c.id, ours: false, name: c.name, kind: c.kind }))];
+}
+
+/** The cell of company `id` in `task`; a company the file does not fill is «no publicado». */
+export function cellOf(task, id) {
+  if (id === "ours") return task.ours;
+  return task.cells?.[id] ?? { level: "unknown" };
+}
+
+/** How many competitors have the task (yes or in part), out of how many. */
+export function haveIt(task, competitors) {
+  const n = competitors.filter((c) => ["yes", "partial"].includes(cellOf(task, c.id).level)).length;
+  return { n, of: competitors.length };
+}
+
+/** People, hours, calls and minutes of a month in one scenario. */
+export function scenarioOf(cost, scenario) {
+  const hours = scenario.agents * cost.hours_per_agent;
+  return { id: scenario.id, agents: scenario.agents, hours, minutes: hours * 60, calls: (hours * 60) / cost.call_minutes };
+}
+
+/** Dollars a month of one price plan (`parts`) in scenario `sc`. */
+export function planCost(parts, sc, minSeats = 0) {
+  let total = 0;
+  if (parts.seat) total += parts.seat * Math.max(sc.agents, minSeats);
+  if (parts.seat_year) total += (parts.seat_year * Math.max(sc.agents, minSeats)) / 12;
+  if (parts.minute) total += parts.minute * sc.minutes;
+  if (parts.hour) total += parts.hour * sc.hours;
+  if (parts.call) total += parts.call * sc.calls;
+  if (parts.year) total += (parts.year + Math.max(0, sc.calls * 12 - (parts.year_calls ?? 0)) * (parts.extra_call ?? 0)) / 12;
+  return total;
+}
+
+/** A competitor's published price applied to scenario `sc`: { low, high }, or null when it has none. */
+export function competitorCost(cost, id, sc) {
+  const spec = cost.competitors[id];
+  if (!spec) return null;
+  const a = planCost(spec.low, sc, spec.min_seats);
+  const b = planCost(spec.high, sc, spec.min_seats);
+  return { low: Math.min(a, b), high: Math.max(a, b), more: Boolean(spec.more), unclear: Boolean(spec.unclear) };
+}
+
+/** Our running cost per hour of conversation: live suggestions plus the analysis after the call, at `price`. */
+export function oursPerHour(cost, rag, price = rag.price) {
+  const o = cost.ours;
+  const answersPerHour = (o.live_calls / o.live_seconds) * 3600;
+  const live = answersPerHour * callCost(price, rag.prompt_tokens, rag.output_tokens);
+  const scale = 3600 / o.analysis_seconds;
+  const analysis = (o.analysis_input_tokens * scale * price.input_per_mtok + o.analysis_output_tokens * scale * price.output_per_mtok) / 1e6;
+  return { answersPerHour, live, analysis, total: live + analysis };
+}
+
+/** Our estimated cost a month in scenario `sc`: Haiku with the measured tokens (low), plus the token margin (high), and the same with Opus for the analysis. */
+export function oursCost(cost, rag, sc) {
+  const haiku = oursPerHour(cost, rag);
+  const opusPrice = { ...rag.price, ...cost.ours.opus };
+  const opus = haiku.live + oursPerHour(cost, rag, opusPrice).analysis;
+  return { low: haiku.total * sc.hours, high: haiku.total * sc.hours * cost.ours.token_margin, opus: opus * sc.hours, perHour: haiku };
+}
+
+/**
+ * Us against one competitor, task by task: where we do more (their
+ * answer is known and lower), where they publish nothing, where they do
+ * more, and what both do. Each list holds task ids in file order.
+ */
+export function versus(data, id) {
+  const out = { weMore: [], unknown: [], theyMore: [], both: [] };
+  for (const task of data.tasks) {
+    const ours = cellOf(task, "ours").level;
+    const theirs = cellOf(task, id).level;
+    if (theirs === "unknown") {
+      if (RANK[ours] > 0) out.unknown.push(task.id);
+    } else if (RANK[theirs] > RANK[ours]) out.theyMore.push(task.id);
+    else if (RANK[ours] > RANK[theirs]) out.weMore.push(task.id);
+    else if (RANK[ours] > 0) out.both.push(task.id);
+  }
+  return out;
+}
+
+/** Every source the #295 parts of the file cite, with where they are cited. */
+export function citedInfoSources(data) {
+  const cited = [];
+  for (const task of data.tasks ?? []) {
+    cited.push({ id: task.ours.source, where: `tasks.${task.id}.ours` });
+    for (const [id, cell] of Object.entries(task.cells ?? {})) if (cell.source) cited.push({ id: cell.source, where: `tasks.${task.id}.${id}` });
+  }
+  for (const c of data.competitors) for (const offer of c.offers ?? []) cited.push({ id: offer.source, where: `${c.name}.offers` });
+  const o = data.cost?.ours;
+  if (o) for (const key of ["live_source", "analysis_source", "analysis_seconds_source", "token_margin_source"]) cited.push({ id: o[key], where: `cost.ours.${key}` });
+  if (o?.opus) cited.push({ id: o.opus.source, where: "cost.ours.opus" });
+  for (const [id, spec] of Object.entries(data.cost?.competitors ?? {})) for (const s of spec.also ?? []) cited.push({ id: s, where: `cost.${id}` });
   return cited;
 }

@@ -1,16 +1,20 @@
-// The «Competencia» page's body (#291): how the system works (steps, where
-// retrieval acts), the with/without retrieval estimate, which model does
-// what, the market comparison, where we stand out and behind, how the
-// content is kept up to date, and what comes next. Every figure and
-// every sentence about a company or our system comes from
-// competition/data.json; headings and labels from the dictionaries.
+// The «Info» page's body (#291, reordered in #295): our strengths first,
+// then the cost of the same service against each company (two
+// scenarios), one chart per task with us first, us against one company
+// at a time, the published prices and where we are behind, and then how
+// it works (steps, with/without retrieval, models, content, roadmap).
+// Every figure and every sentence about a company or our system comes
+// from competition/data.json; headings and labels from the dictionaries.
+// Every chart is a table (rows and cells are its text equivalent); its
+// bars and marks are drawn next to words, never colour alone.
 // Colours come from classes in style.css (the CSP allows no inline
 // styles); text always goes in as text nodes.
 
 import { h } from "../dom.js";
 import { decimal, lang, t } from "../i18n.js";
 import {
-  KINDS, competitorsOf, digitsFor, maximumLibraries, ragMaxRows, ragRows, textOf,
+  KINDS, cellOf, companies, competitorCost, competitorsOf, digitsFor, haveIt, maximumLibraries, oursCost,
+  ragMaxRows, ragRows, scenarioOf, textOf, versus,
 } from "../lib/competition.js";
 
 const NS = "http://www.w3.org/2000/svg";
@@ -215,15 +219,10 @@ function market(data) {
         h("th", { role: "columnheader", scope: "col" }, t("comp.col.users")),
         h("th", { role: "columnheader", scope: "col" }, t("comp.col.runs")))),
       groups, oursBody));
-  const strengths = h("ul", { class: "comp-cards" }, data.strengths.map((item) => h("li", { class: "comp-card" },
-    h("h4", {}, icon("check"), tx(item.title)),
-    h("p", {}, tx(item.body)))));
   const gaps = h("ul", { class: "comp-gaps" }, data.gaps.map((item) => h("li", {}, tx(item))));
-  return section("competencia", "comp.h.market", "comp.market.lead",
+  return section("precios", "comp.h.market", "comp.market.lead",
     table,
     h("p", { class: "hint comp-assume" }, t("comp.table.note", { date: day(data.updated) })),
-    h("h3", { id: "destacamos" }, t("comp.h.strengths")),
-    strengths,
     h("h3", { id: "detras" }, t("comp.h.gaps")),
     gaps);
 }
@@ -247,15 +246,235 @@ function roadmap(data) {
       h("p", {}, tx(item.body))))));
 }
 
+function strengths(data) {
+  return section("destacamos", "comp.h.strengths", "comp.strengths.lead",
+    h("ul", { class: "comp-cards comp-strengths" }, data.strengths.map((item) => h("li", { class: "comp-card" },
+      h("h3", {}, icon("check"), tx(item.title)),
+      h("p", {}, tx(item.body))))));
+}
+
+// ---- Marks and rows shared by every chart (#295) ----
+
+/** A level's mark: a shape and a word, so it never rests on colour alone. */
+function mark(level) {
+  const glyph = {
+    yes: s("path", { d: "M6 10.4l2.7 2.7L14.2 7.4", class: "glyph" }),
+    partial: s("path", { d: "M10 1.5a8.5 8.5 0 0 1 0 17z", class: "half" }),
+    no: s("path", { d: "M6.4 10h7.2", class: "glyph" }),
+    unknown: s("text", { x: 10, y: 14.2, "text-anchor": "middle", class: "q" }, "?"),
+  }[level];
+  return h("span", { class: `comp-mark is-${level}` },
+    s("svg", { class: "comp-mark-icon", viewBox: "0 0 20 20", "aria-hidden": "true", focusable: "false" },
+      s("circle", { cx: 10, cy: 10, r: 8.5, class: "ring" }), glyph),
+    h("span", { class: "comp-mark-word" }, t(`comp.level.${level}`)));
+}
+
+/** The company cell that starts every row of every chart; ours carries «Nosotros». */
+function companyCell(row) {
+  return h("th", { scope: "row", role: "rowheader", class: "comp-co" },
+    h("span", { class: "comp-co-name" }, row.ours ? tx(row.name) : row.name),
+    row.ours ? h("span", { class: "comp-us" }, t("comp.us")) : null);
+}
+
+/** The column headers of a chart table, for screen readers (the chart shows them as layout). */
+function chartHead(keys) {
+  return h("thead", { role: "rowgroup", class: "sr-only" },
+    h("tr", { role: "row" }, keys.map((key) => h("th", { role: "columnheader", scope: "col" }, t(key)))));
+}
+
+/** «Fuentes: …» with each source once, in order of first use. */
+function sourcesOf(data, ids) {
+  return sourceLine(data, [...new Set(ids.filter(Boolean))]);
+}
+
+// ---- Cost of the same service ----
+
+let scenarioId = null;
+
+/** Dollars with the thousands separator always (5.950 next to 12.500 on one chart). */
+const grouped = (n) => new Intl.NumberFormat(lang, { maximumFractionDigits: 0, useGrouping: "always" }).format(Math.round(n));
+
+/** A whole number of dollars a month, or a range. */
+function money(low, high) {
+  const lo = grouped(low);
+  const hi = grouped(high);
+  return lo === hi ? t("comp.cost.month", { v: lo }) : t("comp.cost.month", { v: `${lo}–${hi}` });
+}
+
+/** A range bar on a 0-100 scale: solid to `low`, lighter to `high`. */
+function rangeBar(low, high, max, ours) {
+  const a = Math.max(0.8, (low / max) * 100);
+  const b = Math.max(a, (high / max) * 100);
+  return s("svg", { class: `comp-bar comp-range${ours ? " is-ours" : ""}`, viewBox: "0 0 100 10", preserveAspectRatio: "none", "aria-hidden": "true" },
+    s("rect", { x: 0, y: 0, width: 100, height: 10, class: "track" }),
+    b > a ? s("rect", { x: a, y: 0, width: b - a, height: 10, class: "fill-range" }) : null,
+    s("rect", { x: 0, y: 0, width: a, height: 10, class: "fill-low" }));
+}
+
+function costRows(data, sc) {
+  const cost = data.cost;
+  const ours = oursCost(cost, data.rag, sc);
+  const rows = companies(data).map((row) => {
+    if (row.ours) return { row, range: ours, note: t("comp.cost.ours_note"), sources: [] };
+    const c = data.competitors.find((item) => item.id === row.id);
+    const range = competitorCost(cost, row.id, sc);
+    const spec = cost.competitors[row.id];
+    if (range) return { row, range, note: tx(spec.note), sources: [c.source, ...(spec.also ?? [])] };
+    const price = c.basis === "none" || c.id === "metaview" ? t("comp.cost.unpublished") : null;
+    return { row, range: null, note: t(`comp.cost.other.${c.kind}`), price, sources: [c.source] };
+  });
+  return { ours, rows };
+}
+
+function costTable(data, sc) {
+  const { ours, rows } = costRows(data, sc);
+  const max = Math.max(...rows.filter((r) => r.range).map((r) => r.range.high));
+  const table = h("table", { role: "table", class: "comp-chart comp-cost-chart" },
+    h("caption", { class: "sr-only" }, t("comp.cost.caption", { n: sc.agents, hours: grouped(sc.hours) })),
+    chartHead(["comp.col.company", "comp.cost.col.bar", "comp.cost.col.value"]),
+    h("tbody", { role: "rowgroup" }, rows.map(({ row, range, note, price }) => h("tr", {
+      role: "row", class: `${row.ours ? "is-ours" : ""}${range ? "" : " is-none"}`.trim() || null,
+    },
+    companyCell(row),
+    h("td", { role: "cell", class: "comp-chart-bar" }, range ? rangeBar(range.low, range.high, max, row.ours) : h("span", { class: "comp-nobar" })),
+    h("td", { role: "cell", class: "comp-chart-value" },
+      range ? h("strong", { class: "comp-value" }, money(range.low, range.high)) : h("strong", { class: "comp-value is-muted" }, price ?? t("comp.cost.not_applicable")),
+      row.ours ? h("span", { class: "badge warn comp-estimate" }, t("comp.cost.estimate")) : null,
+      h("span", { class: "comp-note" }, note))))));
+  return { table, ours, rows };
+}
+
+function costBody(data, sc) {
+  const cost = data.cost;
+  const { table, ours, rows } = costTable(data, sc);
+  const price = data.rag.price;
+  return [
+    h("p", { class: "comp-scenario" }, icon("sessions"), t("comp.cost.line", { n: sc.agents, h: cost.hours_per_agent, hours: grouped(sc.hours), min: cost.call_minutes })),
+    table,
+    h("p", { class: "hint comp-assume" }, t("comp.cost.legend")),
+    h("p", { class: "hint comp-assume" }, t("comp.cost.assume", {
+      answers: whole(ours.perHour.answersPerHour), model: price.model, margin: whole((cost.ours.token_margin - 1) * 100),
+    })),
+    h("p", { class: "hint comp-assume" }, t("comp.cost.opus", { model: cost.ours.opus.model, cost: money(ours.opus, ours.opus) })),
+    h("p", { class: "hint comp-assume" }, t("comp.cost.fair")),
+    sourcesOf(data, [price.source, cost.ours.live_source, cost.ours.analysis_source, cost.ours.token_margin_source, ...rows.flatMap((r) => r.sources)]),
+  ];
+}
+
+function costSection(data) {
+  const cost = data.cost;
+  if (!cost.scenarios.some((sc) => sc.id === scenarioId)) scenarioId = cost.scenarios[0].id;
+  const body = h("div", { class: "comp-cost-body" });
+  const buttons = cost.scenarios.map((sc) => h("button", {
+    type: "button", class: "comp-switch-button", "data-scenario": sc.id,
+    onclick: () => { scenarioId = sc.id; draw(); },
+  }, icon("check"), t(`comp.cost.scenario.${sc.id}`, { n: sc.agents })));
+  function draw() {
+    const sc = cost.scenarios.find((item) => item.id === scenarioId);
+    for (const button of buttons) button.setAttribute("aria-pressed", String(button.dataset.scenario === scenarioId));
+    body.replaceChildren(...costBody(data, scenarioOf(cost, sc)));
+  }
+  draw();
+  return section("coste", "comp.h.cost", "comp.cost.lead",
+    h("div", { class: "comp-switch", role: "group", "aria-label": t("comp.cost.switch") }, buttons),
+    body);
+}
+
+// ---- One chart per task ----
+
+function legend() {
+  return h("div", { class: "comp-legend" },
+    h("ul", { "aria-label": t("comp.legend") }, ["yes", "partial", "no", "unknown"].map((level) => h("li", {}, mark(level)))),
+    h("p", { class: "hint" }, t("comp.level.unknown_means")));
+}
+
+function taskChart(data, task, rows) {
+  const { n, of } = haveIt(task, data.competitors);
+  const cells = rows.map((row) => ({ row, cell: cellOf(task, row.id) }));
+  return h("article", { class: "comp-task", id: `tarea-${task.id}`, "aria-labelledby": `h-tarea-${task.id}` },
+    h("header", { class: "comp-task-head" },
+      h("h3", { id: `h-tarea-${task.id}` }, tx(task.title)),
+      h("p", { class: "comp-task-q" }, tx(task.question)),
+      h("p", { class: "comp-task-count" }, t("comp.task.count", { n, of }))),
+    h("table", { role: "table", class: "comp-chart comp-matrix" },
+      h("caption", { class: "sr-only" }, tx(task.title)),
+      chartHead(["comp.col.company", "comp.task.col.answer", "comp.task.col.detail"]),
+      h("tbody", { role: "rowgroup" }, cells.map(({ row, cell }) => h("tr", { role: "row", class: `${row.ours ? "is-ours " : ""}is-${cell.level}` },
+        companyCell(row),
+        h("td", { role: "cell", class: "comp-chart-mark" }, mark(cell.level)),
+        h("td", { role: "cell", class: "comp-detail" }, cell.text ? tx(cell.text) : ""))))),
+    sourcesOf(data, cells.map(({ cell }) => cell.source)));
+}
+
+function tasksSection(data) {
+  const rows = companies(data);
+  return section("tareas", "comp.h.tasks", "comp.tasks.lead",
+    legend(),
+    h("div", { class: "comp-tasks" }, data.tasks.map((task) => taskChart(data, task, rows))));
+}
+
+// ---- Us against one company ----
+
+let pickedId = null;
+
+function versusList(titleKey, name, items, cls) {
+  if (items.length === 0) return null;
+  return h("div", { class: `comp-vs-col ${cls}` },
+    h("h4", {}, t(titleKey, { name })),
+    h("ul", {}, items));
+}
+
+function versusPanel(data, c) {
+  const v = versus(data, c.id);
+  const byId = Object.fromEntries(data.tasks.map((task) => [task.id, task]));
+  const item = (id, who) => {
+    const task = byId[id];
+    const cell = cellOf(task, who);
+    return h("li", {}, h("strong", {}, tx(task.title)),
+      cell.text ? h("span", { class: "comp-vs-note" }, who === "ours" ? t("comp.vs.ours", { text: tx(cell.text) }) : `${c.name}: ${tx(cell.text)}`) : null);
+  };
+  const source = data.sources[c.source];
+  const facts = h("dl", { class: "comp-vs-facts" },
+    h("div", {}, h("dt", {}, t("comp.col.price")), h("dd", {}, tx(c.price))),
+    h("div", {}, h("dt", {}, t("comp.col.users")), h("dd", {}, tx(c.users))),
+    h("div", {}, h("dt", {}, t("comp.vs.where")), h("dd", {}, h("span", { class: "comp-runs is-cloud" }, t("comp.runs.cloud")))));
+  const theyMore = [...v.theyMore.map((id) => item(id, "ours")), ...(c.offers ?? []).map((offer) => h("li", {}, h("strong", {}, tx(offer))))];
+  return [
+    h("div", { class: "comp-vs-head" },
+      h("h3", {}, c.name, " ", h("span", { class: "comp-vs-kind" }, t(`comp.kind.${c.kind}`))),
+      facts,
+      source ? h("p", { class: "hint comp-source" }, sourceLink(data, c.source), " ", t("comp.seen.on", { date: day(source.seen) })) : null),
+    h("div", { class: "comp-vs-grid" },
+      versusList("comp.vs.we_more", c.name, v.weMore.map((id) => item(id, c.id)), "is-yes"),
+      versusList("comp.vs.unknown", c.name, v.unknown.map((id) => item(id, c.id)), "is-unknown"),
+      versusList("comp.vs.they_more", c.name, theyMore, "is-they"),
+      versusList("comp.vs.both", c.name, v.both.map((id) => item(id, null)), "is-both")),
+    sourcesOf(data, [...data.tasks.map((task) => cellOf(task, c.id).source), ...(c.offers ?? []).map((offer) => offer.source)]),
+  ];
+}
+
+function versusSection(data) {
+  if (!data.competitors.some((c) => c.id === pickedId)) pickedId = data.competitors[0].id;
+  const panel = h("div", { class: "comp-vs-panel", "aria-live": "polite" });
+  const draw = () => panel.replaceChildren(...versusPanel(data, data.competitors.find((c) => c.id === pickedId)));
+  const select = h("select", { id: "comp-pick", onchange: (event) => { pickedId = event.target.value; draw(); } },
+    data.competitors.map((c) => h("option", { value: c.id, selected: c.id === pickedId }, c.name)));
+  draw();
+  return section("frente", "comp.h.vs", "comp.vs.lead",
+    h("div", { class: "comp-pick" }, h("label", { for: "comp-pick" }, t("comp.vs.pick")), select),
+    panel);
+}
+
 /** The page's contents: a row of links to its sections. */
 function contents() {
-  const items = [["como", "comp.h.how"], ["rag", "comp.h.rag"], ["modelos", "comp.h.models"],
-    ["competencia", "comp.h.market"], ["contenido", "comp.h.content"], ["mejoras", "comp.h.next"]];
+  const items = [["destacamos", "comp.h.strengths"], ["coste", "comp.h.cost"], ["tareas", "comp.h.tasks"], ["frente", "comp.h.vs"],
+    ["precios", "comp.h.market"], ["como", "comp.h.how"], ["rag", "comp.h.rag"], ["modelos", "comp.h.models"],
+    ["contenido", "comp.h.content"], ["mejoras", "comp.h.next"]];
   return h("nav", { class: "comp-toc", "aria-label": t("comp.toc") },
     h("ul", {}, items.map(([id, key]) => h("li", {}, h("a", { href: `#${id}` }, t(key))))));
 }
 
-/** Draw the whole page. */
+/** Draw the whole page: our strengths and the comparisons first, then how it works. */
 export function renderCompetition(main, data) {
   main.replaceChildren(
     h("header", { class: "comp-hero" },
@@ -263,10 +482,14 @@ export function renderCompetition(main, data) {
       h("p", { class: "comp-lead" }, t("comp.lead")),
       h("p", { class: "hint" }, t("comp.synthetic"))),
     contents(),
+    strengths(data),
+    costSection(data),
+    tasksSection(data),
+    versusSection(data),
+    market(data),
     howItWorks(data),
     withWithout(data),
     models(data),
-    market(data),
     content(data),
     roadmap(data),
     h("footer", { class: "comp-foot" },
