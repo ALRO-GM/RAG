@@ -10,6 +10,7 @@ import { h, svg } from "../dom.js";
 import { t } from "../i18n.js";
 import { localized } from "../lib/live.js";
 import { FILL, coverageCounts, lowerFirst, pointState } from "../lib/coverage.js";
+import { icon } from "../ui.js";
 
 const RADIUS = 7;
 const AROUND = 2 * Math.PI * RADIUS;
@@ -61,7 +62,7 @@ export function pointRow(point, { lang = "es", running = false, onMark = null } 
 }
 
 function mark(state) {
-  if (state === "asked_answered" || state === "treated") return "✓";
+  if (state === "asked_answered" || state === "treated") return icon("check");
   if (state === "asked_unknown" || state === "unknown") return "?";
   if (state === "asked") return "•";
   return h("span", { class: "lv-ring" });

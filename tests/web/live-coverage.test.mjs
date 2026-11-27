@@ -187,7 +187,9 @@ test("a concept says asked and treated apart, and can be marked by hand while li
     assert.ok(!ended.all().some((n) => n.tagName === "BUTTON"), "no marks once the session ended");
   });
   await withDom("en", ({ pointRow }) => {
-    assert.ok(pointRow(TOPICS[0].points[0], { lang: "en" }).text().startsWith("✓Indexes asked and answered"));
+    const row = pointRow(TOPICS[0].points[0], { lang: "en" });
+    assert.ok(row.text().includes("Indexes asked and answered"));
+    assert.ok(row.all().some((n) => n.tagName === "SVG"), "the check mark is the icon");
   });
 });
 
