@@ -159,7 +159,12 @@ first there), light and dark.
   «preguntado, sin respuesta aún», «respondido sin preguntarlo» or «aún
   no preguntado» in words (the mark beside it is decoration), and, in a
   live session, «Ya lo he preguntado» marks it by hand (logged as by
-  hand; «Deshacer» removes only a mark by hand). Above them, while there
+  hand, dated at the click) and «Deshacer «preguntado»» undoes the mark
+  shown, whoever made it (the rules, the model or the interviewer; the
+  undo is recorded and may lower the topic's level). Who marked it is
+  said beside it («por las palabras», «por el modelo, en directo»,
+  «marcado a mano»). Script phases (support, an interview without a
+  plan) keep «{done} de {all} cubiertos». Above them, while there
   is one, «Siguiente: Índices (Bases de datos)» with the proposed
   question replaces «Falta por tratar…». The «Compartir pantalla» mirror
   copies the same DOM, so a joined device sees the rings and can press
