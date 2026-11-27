@@ -185,14 +185,14 @@ and a CALLHOME truth text.
 What #286 adds to each final and each tick call, with an instant fake
 model (so the model's own latency is not in it), CPU, 4,800 finals of an
 invented round (200 replays of 24 lines), 2,400 tick calls; before =
-main `c7a190d`, after = the #286 branch with the review's fixes, three
+main `c7a190d`, after = the #286 branch with both reviews' fixes, three
 runs each (`experiments/live/lv286/tick_cost.py <checkout>` with that
 checkout on `PYTHONPATH`):
 
 | | before p50 / p90 | after p50 / p90 |
 |---|---|---|
-| `TopicTracker.on_event` per final | 86 / 92 µs | 219–224 / 251–255 µs |
-| one tick call's handling around the model | 9 / 53–54 µs | 10 / 205–209 µs |
+| `TopicTracker.on_event` per final | 86 / 92 µs | 264–269 / 299–303 µs |
+| one tick call's handling around the model | 9 / 53–54 µs | 12–23 / 205–211 µs |
 
 Both stay under a millisecond against 0.6–0.9 s from speech end to final
 and seconds of model. The tick call (`interview.ticks@2`) runs on its own

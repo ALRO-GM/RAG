@@ -1208,9 +1208,9 @@ que decir» on the page is #287.)
 **Cost** (measured 2026-11-27 with an instant fake model,
 `TopicTracker.on_event` per final over 4,800 finals of an invented round,
 CPU, before = main `c7a190d`, `experiments/live/lv286/tick_cost.py`):
-p50 86 → 219–224 µs, p90 92 → 251–255 µs; the handling of one tick call
-around the model (request and reply) p50 9 → 10 µs, p90 53–54 → 205–209
-µs (`docs/live/LIVE_MEASURES.md`). Both stay under a millisecond, against
+p50 86 → 264–269 µs, p90 92 → 299–303 µs; the handling of one tick call
+around the model (request and reply) p50 9 → 12–23 µs, p90 53–54 →
+205–211 µs (`docs/live/LIVE_MEASURES.md`). Both stay under a millisecond, against
 seconds of recognition and model. The tick call's prompt grows from 543 to 841
 system characters and its output cap from 160 to 260 tokens; the
 attribution's from 1,679 to 1,991 characters and 4,000 to 4,600 tokens.
