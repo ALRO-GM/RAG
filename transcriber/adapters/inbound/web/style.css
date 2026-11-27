@@ -1176,7 +1176,7 @@ details.tech, details.controls { margin: 1rem 0; }
 .lv-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-6); align-items: start; }
 .lv-label { margin: 0; font-size: var(--fs-sm); font-weight: 600; color: var(--muted); }
 .lv-talk, .lv-side { min-width: 0; display: flex; flex-direction: column; gap: var(--s-3); }
-.lv-side { order: -1; gap: var(--s-4); }
+.lv-side { gap: var(--s-4); }
 /* The conversation: a box of fixed height tied to the viewport, anchored to
    the bottom (the newest line always in view, older ones leave at the top
    under a soft fade); no scrollbar while it runs, but the user can still
@@ -1221,6 +1221,15 @@ details.tech, details.controls { margin: 1rem 0; }
 .lv-count { font-variant-numeric: tabular-nums; }
 .lv-empty { padding: var(--s-2) 0; }
 .lv-ring { width: 0.55rem; height: 0.55rem; border-radius: 50%; border: 1.5px solid var(--faint); flex: none; }
+.lv-tosay { border-color: var(--danger); border-width: 2px; }
+.lv-fold { display: block; }
+.lv-fold > summary { list-style: none; cursor: pointer; min-height: 44px; display: flex; align-items: center; gap: var(--s-2); }
+.lv-fold > summary::-webkit-details-marker { display: none; }
+.lv-fold > summary::before { content: ""; width: 0.5rem; height: 0.5rem; border: solid currentColor; border-width: 0 2px 2px 0; transform: rotate(-45deg); transition: transform var(--fast) var(--ease); flex: none; margin: 0 var(--s-1); }
+.lv-fold[open] > summary::before { transform: rotate(45deg); }
+.lv-fold > summary h3 { margin: 0; flex: 1; }
+.lv-fold[open] > .lv-tosay-body { margin-top: var(--s-3); }
+.lv-tosay.is-done { border-width: 1px; border-color: var(--line); padding-block: var(--s-1); color: var(--muted); }
 .lv-tosay.remind { border-color: var(--accent); box-shadow: 0 0 0 3px var(--active); }
 .lv-note { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); padding: var(--s-3) var(--s-4); border-radius: var(--r-lg); background: var(--warn-bg); color: var(--warn-text); }
 .lv-more { color: var(--muted); font-size: var(--fs-md); }
@@ -1254,7 +1263,9 @@ details.tech, details.controls { margin: 1rem 0; }
 .lv-pulse { animation: pulse 1.6s ease-in-out infinite; }
 @media (min-width: 64rem) {
   .lv-body { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: var(--s-8); }
-  .lv-side { order: 0; }
+  .lv-body { grid-template-areas: "talk side"; }
+  .lv-talk { grid-area: talk; }
+  .lv-side { grid-area: side; }
   .lv-lines { height: clamp(18rem, calc(100vh - 20rem), 40rem); height: clamp(18rem, calc(100dvh - 20rem), 40rem); }
   .lv-now { min-height: 20rem; padding: var(--s-8) var(--s-10); }
 }
