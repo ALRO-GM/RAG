@@ -637,6 +637,79 @@ class SheetPoint(_Strict):
     by: Optional[DecidedBy] = None
 
 
+AskedBy = Literal["rules", "live_model", "hand", "after_session"]
+"""Who said a concept's question was asked (#286): the word rules or the
+live page's tick call during the session, the interviewer by hand
+(«Ya lo he preguntado»), or the model reading the whole round after the
+session."""
+ASKED_BY: Tuple[AskedBy, ...] = ("rules", "live_model", "hand",
+                                 "after_session")
+CoverageLevel = Literal["none", "named", "treated", "well_treated"]
+"""How far a topic of a live round was covered (#286), lowest first:
+not mentioned, named by either speaker, treated, well treated (the rule
+is :func:`~orchestrator.domain.interview_coverage.topic_level`). It
+says how much the topic was talked about, never how good the answers
+were."""
+COVERAGE_LEVELS: Tuple[CoverageLevel, ...] = (
+    "none", "named", "treated", "well_treated")
+
+
+class PointAsked(_Strict):
+    """When and how a concept's question was asked in a live round (#286).
+
+    ``at``: seconds from the start of the session (the interviewer's
+    line; ``None`` when unknown, as for a mark by hand without a line).
+    ``utterance`` and ``quote``: the interviewer's line and its first
+    words (none for a mark by hand).
+    """
+
+    by: AskedBy
+    at: Optional[float] = None
+    utterance: Optional[str] = None
+    quote: str = Field(default="", max_length=QUOTE_CHARS)
+
+
+class PointCoverage(_Strict):
+    """One concept of a topic: was it asked, and did the candidate treat it.
+
+    The two facts are separate (#286): a concept whose question was
+    asked counts as covered even when the answer was poor or absent;
+    ``status`` is the candidate's side, as in :class:`SheetPoint`.
+    """
+
+    id: str
+    text: str = Field(default="", max_length=POINT_CHARS)
+    """The concept's words in the plan when the round was held."""
+    status: PointStatus = "pending"
+    asked: Optional[PointAsked] = None
+    undone: List[PointAsked] = Field(default_factory=list)
+    """Marks the interviewer undid by hand (#286 review): a mark the
+    rules, the model or they themselves made by mistake. The same line
+    is never marked again."""
+
+
+class TopicCoverage(_Strict):
+    """How far one topic of the plan was covered in a live round (#286).
+
+    ``level`` only grows during the session; ``concepts`` the topic's
+    concepts, ``asked`` how many were asked, ``treated`` how many the
+    candidate treated or said they do not know, ``covered`` how many
+    were asked or treated, ``words`` how many words the candidate said
+    in answers to it.
+    """
+
+    id: str
+    label: str = Field(default="", max_length=LABEL_CHARS)
+    """The topic's label in the plan when the round was held."""
+    level: CoverageLevel = "none"
+    concepts: int = 0
+    asked: int = 0
+    treated: int = 0
+    covered: int = 0
+    words: int = 0
+    points: List[PointCoverage] = Field(default_factory=list)
+
+
 class SheetSlot(_Strict):
     """One slot of the sheet: its status, answers and score.
 
@@ -751,6 +824,13 @@ class Sheet(_Strict):
     the plan that is not in ``slots`` but is here was asked of nobody
     (not treated), and one that is in neither was added to the plan
     later (not asked). ``None``: written before it."""
+    coverage: Optional[List[TopicCoverage]] = None
+    """How far each topic of the plan was covered in a live round
+    (#286): its level and, per concept, whether its question was asked
+    (when, by whom, the interviewer's words) and whether the candidate
+    treated it. ``None``: an AI interviewer's sheet, or a live report
+    written before it (then whether a pending concept was asked is not
+    known)."""
     finished_at: Optional[datetime] = None
 
     def to_contract(self) -> Dict[str, Any]:

@@ -35,6 +35,7 @@ from orchestrator.application.rebuild_round import (
     events_of_transcript,
 )
 from orchestrator.domain.events import Transcript
+from orchestrator.domain.interview_coverage import earlier_coverage
 
 LOG = logging.getLogger(__name__)
 INTERVIEW = "live_assist.interview"
@@ -105,6 +106,8 @@ class RecoveredRound:
             candidate_id=profile.id if profile is not None else None,
             judge=plan is not None and profile is not None,
             publish=publish,
+            earlier=earlier_coverage(live.handoff or {})
+            if live is not None else None,
         )
         if live is not None:
             if rebuilt.accuracy is not None:
@@ -115,6 +118,9 @@ class RecoveredRound:
                     record["mandatory"] = rebuilt.mandatory
                 if rebuilt.accuracy is not None:
                     record["accuracy"] = rebuilt.accuracy
+                if rebuilt.coverage is not None:
+                    # #286: the same coverage as the stored report.
+                    record["coverage"] = rebuilt.coverage
                 live.handoff = record
                 self.sessions.write_handoff(live)
         summary = rebuilt.summary()

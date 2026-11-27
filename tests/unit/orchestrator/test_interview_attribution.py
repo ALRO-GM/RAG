@@ -388,8 +388,12 @@ def test_a_failed_attribution_falls_back_to_the_rules_and_says_why(
     assert result["attribution_error"] == why
     kept = Sheet.model_validate(store.result("set-running", "r-B"))
     assert kept.attribution == "rules" and kept.attribution_error == why
-    # Round A: the rules attributed nothing either: no report, no wait.
-    none, told = judged(SET["rounds"][0], Oracle(fail), Store())
+    # Round A up to before the weekend question (#286: that question
+    # names a concept, so the rules follow its answer): the rules
+    # attributed nothing either: no report, no wait.
+    first = dict(SET["rounds"][0])
+    first["lines"] = [x for x in first["lines"] if x["id"] != "a11"]
+    none, told = judged(first, Oracle(fail), Store())
     assert none is None and told[-1] == {"type": "accuracy",
                                          "state": "empty",
                                          "attribution_error": why}
@@ -659,7 +663,7 @@ class Ticks(FakeReasoner):
         self.ticks: List[Document] = []
 
     def reason(self, request: Document, cancel: CancelToken) -> Document:
-        if request.get("template") != "interview.ticks@1":
+        if request.get("template") != "interview.ticks@2":
             return super().reason(request, cancel)
         self.ticks.append(request)
         if self.answer == "down":
@@ -730,7 +734,7 @@ def test_one_tick_call_covers_every_answer_since_the_last_and_is_spaced(
     assert first["payload"]["answers"] == ["u2", "u3", "u4"]
     assert [x["id"] for x in first["context"]["window"]] == [
         "u1", "u2", "u3", "u4"]  # from the question on
-    assert first["template"] == "interview.ticks@1"
+    assert first["template"] == "interview.ticks@2"
     assert first["role"] == "structured"
     assert first["constraints"] == {"deadline_ms": 20000}
     assert first["payload"]["points"][0]["id"] == "s2.p1"

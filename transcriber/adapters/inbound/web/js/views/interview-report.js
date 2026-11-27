@@ -9,6 +9,7 @@ import { t } from "../i18n.js";
 import { describeError } from "../errors.js";
 import { emptyState, pageHead } from "../ui.js";
 import { accuracyBlock, reportCard, shortDate } from "./interview.js";
+import { coverageBlock } from "./coverage.js";
 
 /** `#/interview-report/<plan>/<session>`. */
 export async function interviewReportView(ctx, root, [planId, sessionId] = []) {
@@ -37,5 +38,6 @@ export function reportPage(sheet) {
     h("p", { class: "hint" }, t((typeof sheet?.owned === "boolean" ? sheet.owned : Boolean(sheet?.candidate_id))
       ? "iv.retention" : "iv.retention_no_file")),
     kind === "ai" ? reportCard({ sheet, handoff: {} })
-      : h("section", { class: "card iv-report" }, accuracyBlock(sheet) ?? h("p", { class: "hint" }, t("rep.iv_missing"))));
+      : h("section", { class: "card iv-report" }, accuracyBlock(sheet) ?? h("p", { class: "hint" }, t("rep.iv_missing")),
+        coverageBlock(sheet)));
 }

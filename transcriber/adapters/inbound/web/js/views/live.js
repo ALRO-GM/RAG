@@ -48,6 +48,8 @@ import {
   finishLine, followUntilEnd, forgetSession, linkLine, reattachPlan, rememberSession, rememberedSession,
 } from "../lib/live-link.js";
 import { busyNotice } from "./live-busy.js";
+import { coverageBlock, nextLine, pointRow, summaryLine, topicChip } from "./coverage.js";
+import { coveredCount, levelChanges, levelOf } from "../lib/coverage.js";
 import { recoveryCard } from "./live-recovery.js";
 import { IdbBackend, LocalRecording, sessionMeta } from "../lib/live-store.js";
 
@@ -924,31 +926,56 @@ export async function liveView(ctx, root, [sub, which] = []) {
     const pointsTitle = h("summary", {});
     const pointsList = h("ul", { class: "lv-point-topics" });
     const pointsAll = h("details", { class: "lv-more" }, pointsTitle, pointsList);
+    // #286: the next concept to ask (the server's rule) replaces the hint
+    // when there is one; each concept says asked and treated apart, and
+    // «Ya lo he preguntado» marks it by hand while the session runs.
+    const nextBox = h("div", {});
     function drawPoints(chips) {
       const box = topics.querySelector(".lv-points");
-      if (!box.firstChild) box.append(pointsFocus, pointsAll);
+      if (!box.firstChild) box.append(nextBox, pointsFocus, pointsAll);
       const focus = state.topicFocus();
       const withPoints = chips.filter((c) => c.points?.length);
-      const key = JSON.stringify([lang, focus?.id, withPoints.map((c) => [c.id, c.current, c.points.map((p) => p.status)])]);
+      const running = state.state === "running" && session.mode === "live";
+      const key = JSON.stringify([lang, focus?.id, running, state.state, state.next, withPoints.map((c) => [c.id, c.current, c.points.map((p) => [p.status, p.asked?.by])])]);
       if (key === pointsKey) return;
       pointsKey = key;
-      box.hidden = !withPoints.length;
-      if (!withPoints.length) return;
+      box.hidden = !withPoints.length && !(state.state === "running" && state.next);
       const name = (item, field) => localized(item, field, lang);
-      const line = !focus ? ""
+      // Once the session ended there is nothing left to propose.
+      const next = state.state === "running" ? state.next : null;
+      fill(nextBox, nextLine(next, chips, lang));
+      // With levels (#286) the hint is the proposal: nothing once it ended.
+      const leveled = chips.some((c) => c.coverage);
+      const line = next || !focus || (leveled && state.state !== "running") ? ""
         : focus.pending.length
           ? t("live.points_missing", { topic: name(focus, "name"), list: focus.pending.map((p) => name(p, "text")).join(", ") })
           : t("live.points_done", { topic: name(focus, "name") });
       if (pointsFocus.textContent !== line) pointsFocus.textContent = line;
       pointsFocus.hidden = !line;
+      pointsAll.hidden = !withPoints.length;
+      if (!withPoints.length) return;
       pointsTitle.textContent = t("live.points_title");
       fill(pointsList, withPoints.map((c) => h("li", { class: c.current ? "is-current" : "" },
         h("strong", {}, name(c, "name")),
-        h("ul", { class: "iv-point-list" }, c.points.map((p) => h("li", { class: `iv-point is-${p.status}` },
-          pointMark(p.status),
-          h("span", { class: "iv-point-text" }, name(p, "text")),
-          " ", h("span", { class: "iv-point-status" }, t(`iv.point.${p.status}`))))))));
+        h("ul", { class: "iv-point-list" }, c.points.map((p) => (c.coverage
+          ? pointRow(p, { lang, running, ended: state.state !== "running", onMark: (point, asked) => markAsked(c.id, point, asked) })
+          : h("li", { class: `iv-point is-${p.status}` },
+            pointMark(p.status),
+            h("span", { class: "iv-point-text" }, name(p, "text")),
+            " ", h("span", { class: "iv-point-status" }, t(`iv.point.${p.status}`)))))))));
     }
+
+    async function markAsked(topic, point, asked) {
+      try {
+        await ctx.api.markAsked(session.id, topic, point.id, asked, asked ? null : point.asked);
+      } catch (error) {
+        toast(t("cov.mark_failed", { error: liveError(error) }), { error: true });
+      }
+    }
+
+    // A topic's level change is said once, politely (#286).
+    const levelsSeen = new Map();
+    const levelNews = h("p", { class: "sr-only", role: "status", "aria-live": "polite" });
 
     function drawTopics() {
       const chips = state.topicChips();
@@ -956,24 +983,35 @@ export async function liveView(ctx, root, [sub, which] = []) {
       if (!chips.length) return;
       if (!topics.firstChild) {
         topics.append(h("div", { class: "lv-row-head" }, h("h3", {}), h("span", { class: "meta lv-count" })),
-          h("div", { class: "lv-chips" }), h("div", { class: "lv-points", hidden: true }));
+          h("div", { class: "lv-chips" }), h("p", { class: "hint cov-note", hidden: true }, t("cov.level_note")),
+          levelNews, h("div", { class: "lv-points", hidden: true }));
       }
       drawPoints(chips);
       // A later round of a candidate: the chips start from what earlier rounds left.
       const rounds = chips.some((c) => ["weak", "revisit", "covered"].includes(c.earlier));
+      const leveled = chips.some((c) => levelOf(c));
       topics.querySelector("h3").textContent = rounds ? t("live.topics_next") : state.topics ? t("live.topics") : t("live.topics_phases");
-      topics.querySelector(".lv-count").textContent = t("live.topics_count", { done: chips.filter((c) => c.done).length, all: chips.length });
+      // Levels (#286) count from «tratado»; script phases (support, interviews without a plan) keep their own words.
+      topics.querySelector(".lv-count").textContent = t(chips.some((c) => levelOf(c)) ? "live.topics_count" : "live.phases_count",
+        { done: coveredCount(chips), all: chips.length });
+      topics.querySelector(".cov-note").hidden = !leveled;
+      const news = levelChanges(levelsSeen, chips).map(({ chip: c, level }) => t("cov.announce", {
+        name: localized(c, "name", lang), level: t(`cov.level.${level}`) }));
+      if (news.length) levelNews.textContent = news.join(" · ");
       const row = topics.querySelector(".lv-chips");
       const wanted = chips.map((c) => {
         const name = c.name ? localized(c, "name", lang) : maybe(`live.phase.${c.phase}`, c.phase);
+        const level = levelOf(c);
+        const shown = level ? JSON.stringify([level, c.coverage]) : c.done;
         const key = `${c.id}|${name}`;
         const kept = chipNodes.get(key);
-        if (kept && kept.done === c.done) return kept.chip;
+        if (kept && kept.done === shown) return kept.chip;
         const earlier = c.earlier && rounds ? ` is-${c.earlier}` : "";
-        const made = chip(c.done, name, `${kept ? "lv-rise" : ""}${earlier}`.trim());
-        if (earlier) made.title = t(`live.earlier.${c.earlier}`);
+        const extra = `${kept ? "lv-rise" : ""}${earlier}`.trim();
+        const made = level ? topicChip(c, name, extra) : chip(c.done, name, extra);
+        if (earlier && !level) made.title = t(`live.earlier.${c.earlier}`);
         if (kept) kept.chip.replaceWith(made);
-        chipNodes.set(key, { chip: made, done: c.done });
+        chipNodes.set(key, { chip: made, done: shown });
         return made;
       });
       const keep = new Set(wanted);
@@ -1173,7 +1211,7 @@ export async function liveView(ctx, root, [sub, which] = []) {
         const retry = h("button", { type: "button", class: "small", onClick: () => judgeAgain(retry) }, t("live.accuracy_retry"));
         saved = h("p", { class: "hint" }, t("live.accuracy_not_saved"), " ", retry);
       }
-      return h("div", {}, accuracyBlock(found), saved);
+      return h("div", {}, accuracyBlock(found), coverageBlock(found), saved);
     }
 
     async function judgeAgain(button) {
@@ -1231,6 +1269,7 @@ export async function liveView(ctx, root, [sub, which] = []) {
         mandatory?.ticked?.length ? h("p", { class: "hint" }, t("live.summary_ticked", { n: mandatory.ticked.length })) : null,
         names.length ? h("p", { class: "hint" }, t("live.summary_names"), " ",
           names.map(([s, n]) => `${n} (${roleText(state.roleOf(s))})`).join(", ")) : null,
+        summaryLine(handoff.coverage), // #286: topics per level, concepts asked
         accuracyNode));
     }
 

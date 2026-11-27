@@ -37,6 +37,7 @@
      "id": "prod",
      "text": "Años con Python en producción",
      "covered_by": "t5.s0",
+     "asked_by": "t4.s1",
      "en": {
       "text": "Years with Python in production"
      }
@@ -56,6 +57,7 @@
      "id": "trace",
      "text": "Diagnóstico con trazas",
      "covered_by": "t3.s0",
+     "asked_by": "t2.s0",
      "en": {
       "text": "Diagnosis with traces"
      }
@@ -91,6 +93,7 @@
      "id": "years",
      "text": "Años de experiencia",
      "covered_by": "t5.s0",
+     "asked_by": "t4.s1",
      "en": {
       "text": "Years of experience"
      }
@@ -118,6 +121,7 @@
      "id": "cases",
      "text": "Pruebas de los casos principales",
      "covered_by": "t7.s0",
+     "asked_by": "t6.s0",
      "en": {
       "text": "Tests of the main cases"
      }
@@ -133,6 +137,7 @@
     {
      "id": "integration",
      "text": "Pruebas de integración",
+     "asked_by": "t6.s0",
      "en": {
       "text": "Integration tests"
      }
@@ -152,6 +157,7 @@
      "id": "situation",
      "text": "Situación concreta",
      "covered_by": "t9.s0",
+     "asked_by": "t8.s0",
      "en": {
       "text": "A concrete situation"
      }
@@ -168,6 +174,7 @@
      "id": "result",
      "text": "Resultado",
      "covered_by": "t9.s0",
+     "asked_by": "t8.s0",
      "en": {
       "text": "Result"
      }
@@ -178,6 +185,31 @@
    }
   }
  ],
+ "mandatory": {
+  "domain": "interview.demo",
+  "version": 1,
+  "remind_seconds": 45,
+  "items": [
+   {
+    "id": "saludo",
+    "text": "Saludar y dar las gracias por venir",
+    "phase": "opening",
+    "said_by": "t0.s0",
+    "en": {
+     "text": "Greet and thank them for coming"
+    }
+   },
+   {
+    "id": "siguientes-pasos",
+    "text": "Explicar los siguientes pasos del proceso",
+    "phase": "closing",
+    "said_by": "t10.s0",
+    "en": {
+     "text": "Explain the next steps of the process"
+    }
+   }
+  ]
+ },
  "suggestions": [
   {
    "after": "t1.s0",

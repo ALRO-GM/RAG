@@ -11,7 +11,9 @@ import json
 from typing import Any, Dict, List, Optional
 
 import pytest
+from fastapi.testclient import TestClient
 
+from orchestrator.adapters.inbound.http_server import create_app
 from orchestrator.adapters.outbound.fakes import (
     FakeKnowledge,
     FakeReasoner,
@@ -519,9 +521,12 @@ def test_a_live_round_follows_the_concepts_of_the_topic_asked() -> None:
     reasoner: AskingReasoner = live.reasoner  # type: ignore[assignment]
     goals = [r["context"]["session"].get("goal") for r in reasoner.requests
              if r.get("role") == "suggester"]
-    assert goals[0] == (f"Tema en curso: «{one.label}»; conceptos aún sin "
-                        "tratar: Dónde y en qué puesto y Tareas que hacía.")
-    assert goals[-1] is None  # nothing left of it: no goal (first round)
+    assert goals[0] == (f"Tema en curso: «{one.label}»; siguiente concepto "
+                        "por preguntar: «Dónde y en qué puesto»; después: "
+                        "Tareas que hacía.")
+    # Nothing left of it (#286): the focus moves to the next topic's
+    # first concept not asked.
+    assert str(goals[-1]).startswith("Tema siguiente: «")
     assert live.get("r1")["goal"] is None
     # #268: the suggestions keep their template; the ticks are a call of
     # their own, beside them, with the pending concepts (the topic asked
@@ -530,7 +535,7 @@ def test_a_live_round_follows_the_concepts_of_the_topic_asked() -> None:
     assert {r["template"] for r in asked} == {"suggester.interview@2"}
     assert all("payload" not in r for r in asked)
     ticked = [r for r in reasoner.requests
-              if r.get("template") == "interview.ticks@1"]
+              if r.get("template") == "interview.ticks@2"]
     assert len(ticked) == 2  # one per candidate final
     ticker = live._find("r1").ticker
     assert ticker is not None and ticker.stopped  # ended with the round
@@ -856,3 +861,38 @@ def test_a_judgement_that_raises_ends_as_failed_not_stuck() -> None:
     assert {"type": "accuracy", "state": "failed", "saved": False} in [
         m for _, m in found]
     held.rejudge("r2")  # a failed round can be retried
+
+
+def test_the_interviewer_marks_a_concept_asked_through_the_api() -> None:
+    """#286: «Ya lo he preguntado», by hand, recorded and undone."""
+    runner = InlineRunner(hold=True)
+    store = MemoryCandidates()
+    live = wired(conversation("r9", [
+        ["S1", "Buenos días, empezamos."]]), None, store, runner)
+    web = TestClient(create_app(live, None, keepalive=0.01))
+    live.start_live("live_assist.interview", "stereo", session_id="r9",
+                    plan="plan-1", candidate="Lucía Marín")
+    plan = live.find("r9")
+    assert plan is not None and plan.topics is not None
+    slot = plan.topics.plan.slots[0]
+    path = f"/sessions/r9/points/{slot.id}/{slot.points[0].id}"
+    marked = web.post(path, json={"asked": True})
+    assert marked.status_code == 200
+    assert marked.json()["asked"]["by"] == "hand"
+    mark = marked.json()["asked"]
+    undo = {"asked": False, "mark": {"by": "hand", "at": mark["at"]}}
+    undone = web.post(path, json=undo)
+    assert undone.json()["asked"] is None
+    # #286 review: the undo names its mark; a retry does nothing, and an
+    # undo without a mark is refused.
+    assert web.post(path, json=undo).json()["asked"] is None
+    assert web.post(path, json={"asked": False}).status_code == 422
+    assert web.post(f"/sessions/r9/points/{slot.id}/p99",
+                    json={"asked": True}).status_code == 404
+    # #286 review: only a real boolean.
+    for wrong in ({}, {"asked": "false"}, {"asked": 0}, {"asked": None}):
+        assert web.post(path, json=wrong).status_code == 422, wrong
+    runner.jobs.pop(0)()  # the round ends
+    handoff = live.get("r9")["handoff"]
+    assert handoff["coverage"][0]["id"] == plan.topics.plan.slots[0].id
+    assert web.post(path, json={"asked": True}).status_code == 409

@@ -11,7 +11,12 @@ backend ``demo-script``), the hint of a line better avoided through the
 same :class:`~orchestrator.domain.avoid.AvoidLedger` as a live session
 (so «rephrased» follows the same rule) and the topics it covers
 (``{"type": "topics"}``), with the concepts of each topic ticked by
-their own sentences and the topic being asked marked ``current`` (#258).
+their own sentences and the topic being asked marked ``current`` (#258);
+since #286 each concept is also marked asked when the interviewer's
+sentence the file names for it is said, each topic carries its level by
+the same rule as a live round (:func:`~orchestrator.domain.
+interview_coverage.topic_level`) and the message names the next concept
+to ask (``next``).
 
 A support demo (#250) goes further, still from the file: a suggestion
 cites the knowledge chunks it comes from (``retrieved``, copied from the
@@ -22,11 +27,23 @@ names has been said (``{"type": "mandatory"}``); at the end the hand-off
 record says what was said and what was left unsaid.
 """
 
-from typing import Callable, Dict, List, Optional, Set
+from typing import Callable, Dict, List, Optional, Set, Tuple
 
 from orchestrator.application.ports import Document, SuggestionSink
 from orchestrator.domain.avoid import AvoidLedger
-from orchestrator.domain.demo import DemoScript
+from orchestrator.domain.demo import DemoScript, DemoTopic
+from orchestrator.domain.interview import (
+    CoverageLevel,
+    PointAsked,
+    PointCoverage,
+)
+from orchestrator.domain.interview_coverage import (
+    TopicFacts,
+    TopicRef,
+    next_proposal,
+    topic_coverage,
+    without_words,
+)
 from orchestrator.domain.events import LiveEvent
 from orchestrator.domain.mandatory import Checklist, ChecklistItem
 from orchestrator.domain.records import Stages, SuggestionRecord, TriggerInfo
@@ -67,6 +84,9 @@ class ScriptedAssist:
         self.covered: List[str] = []
         self.said: Set[str] = set()
         self.current: Optional[str] = None
+        self.lines: Dict[str, Tuple[str, float]] = {}
+        """Every final so far: id → (words, start)."""
+        self.levels: Dict[str, CoverageLevel] = {}
         self.checklist: Optional[Checklist] = None
         mandatory = script.mandatory
         if mandatory is not None:
@@ -129,6 +149,7 @@ class ScriptedAssist:
         ):
             self.publish({"type": "avoid", "flags": self.ledger.view()})
         self._said(u.id, event.stream_time)
+        self.lines[u.id] = (u.text, u.start)
         named = [t for t in self.script.topics if u.id in t.sentences()]
         if named:
             self.said.add(u.id)
@@ -172,28 +193,77 @@ class ScriptedAssist:
             self.publish({"type": "mandatory",
                           "checklist": self.checklist.model_dump(mode="json")})
 
+    def _facts(self, t: DemoTopic) -> TopicFacts:
+        """The topic's facts from the sentences said so far (#286)."""
+        points = []
+        for p in t.points:
+            line = self.lines.get(p.asked_by or "")
+            asked = (PointAsked(by="rules", at=line[1], utterance=p.asked_by)
+                     if line is not None and p.asked_by in self.said
+                     else None)
+            points.append(PointCoverage(
+                id=p.id, status="treated" if p.covered_by in self.said
+                else "pending", asked=asked))
+        answers = {x for x in [t.covered_by, *(p.covered_by
+                                               for p in t.points)]
+                   if x and x in self.said}
+        last = max((self.lines[x][1] for x in answers if x in self.lines),
+                   default=-1.0)
+        return TopicFacts(
+            answered={p.id for p, c in zip(t.points, points)
+                      if c.asked is not None and c.asked.at is not None
+                      and last > c.asked.at},
+            named=any(x in self.said for x in t.sentences()),
+            asked=(t.asked_by in self.said if t.asked_by
+                   else t.covered_by in self.said),
+            answers=len(answers),
+            words=sum(len(self.lines[x][0].split()) for x in answers
+                      if x in self.lines),
+            complete=t.id in self.covered, points=points)
+
     def _topics(self) -> None:
         """Publish every topic with whether it is covered.
 
         A topic with concepts lists them, each ``treated`` once its
-        sentence was said (``pending`` until then).
+        sentence was said (``pending`` until then) and ``asked`` once
+        its question was (#286); each topic has its level, and ``next``
+        names the next concept to ask.
         """
         topics: List[Document] = []
+        facts: Dict[str, TopicFacts] = {}
         for t in self.script.topics:
+            facts[t.id] = got = self._facts(t)
+            coverage = topic_coverage(t.id, got,
+                                      self.levels.get(t.id, "none"))
+            self.levels[t.id] = coverage.level
             topic: Document = {"id": t.id, "name": t.name,
                                "done": t.id in self.covered,
-                               **({"en": dict(t.en)} if t.en else {})}
+                               **({"en": dict(t.en)} if t.en else {}),
+                               "coverage": {
+                                   "level": coverage.level,
+                                   "concepts": coverage.concepts,
+                                   "asked": coverage.asked,
+                                   "treated": coverage.treated,
+                                   "covered": coverage.covered}}
             if t.points:
                 topic["points"] = [
-                    {"id": p.id, "text": p.text,
-                     "status": "treated" if p.covered_by in self.said
-                     else "pending", **({"en": dict(p.en)} if p.en else {})}
-                    for p in t.points
+                    {"id": p.id, "text": p.text, "status": c.status,
+                     "asked": ({"by": c.asked.by, "at": c.asked.at}
+                               if c.asked else None),
+                     **({"en": dict(p.en)} if p.en else {})}
+                    for p, c in zip(t.points, got.points)
                 ]
             if t.id == self.current:
                 topic["current"] = True
             topics.append(topic)
-        self.publish({"type": "topics", "topics": topics})
+        found = next_proposal(
+            [TopicRef(t.id, t.name, tuple((p.id, p.text) for p in t.points))
+             for t in self.script.topics], facts,
+            {f"{t.id}.{p.id}": 1 for t in self.script.topics
+             for p in t.points if p.asked_by in self.said},
+            self.current)
+        self.publish({"type": "topics", "topics": topics,
+                      "next": found.to_message() if found else None})
 
     def finish(self) -> None:
         """Publish the hand-off record of a demo with mandatory items.
@@ -205,4 +275,11 @@ class ScriptedAssist:
                 "session_id": self.session_id, "demo": True,
                 "product": self.script.product,
                 "mandatory": self.checklist.summary(),
+                # #286: the topics' levels and concepts asked, as a live
+                # round's hand-off (ids and times, no words).
+                **({"coverage": without_words([
+                    topic_coverage(t.id, self._facts(t),
+                                   self.levels.get(t.id, "none"), t.name)
+                    for t in self.script.topics])}
+                   if self.script.topics else {}),
             }})

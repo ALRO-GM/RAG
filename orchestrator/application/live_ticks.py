@@ -3,8 +3,11 @@
 The word rules of the topic tracker tick few concepts on real speech.
 :class:`LiveTicker` asks the model which of the pending concepts
 (:meth:`TopicTracker.focus_points`) the candidate's answers talked
-about (template ``interview.ticks@1``) and gives the reply to
-:meth:`TopicTracker.suggested`, which ticks them ``by: "live_model"``.
+about (template ``interview.ticks@2``; ``@1`` before #286) and gives
+the reply to :meth:`TopicTracker.suggested`, which ticks them ``by:
+"live_model"``. Since #286 the same reply also says which concepts an
+interviewer's question in the window asked (``asked``), marked asked
+``by: "live_model"``: no extra call.
 
 **Bounded cost.** One call covers **every candidate final since the
 previous call**, and two calls are at least ``every_s`` apart (the
@@ -39,12 +42,17 @@ from orchestrator.application.ports import (
     CancelToken,
     Document,
     ReasonerPort,
+    ReasonerRejected,
     ReasonerUnavailable,
 )
 from orchestrator.domain.events import LiveEvent
 
 LOG = logging.getLogger(__name__)
-TICKS_TEMPLATE = "interview.ticks@1"
+TICKS_TEMPLATE = "interview.ticks@2"
+TICKS_FALLBACK = "interview.ticks@1"
+"""Used when the reasoner refuses ``@2`` (a RAG not restarted with the
+orchestrator, #286 review): treated concepts only, no asked ones."""
+"""Since #286 the same call also says which concepts a question asked."""
 TICKS_DEADLINE_MS = 20000
 """Deadline of one tick call: a cold process start (2–5 s) and a short
 reply; a late tick is of no use to the interviewer."""
@@ -93,6 +101,7 @@ class LiveTicker:
         self.every_s = max(every_s, 0.0)
         self.clock = clock
         self.sleep = sleep
+        self.template = TICKS_TEMPLATE
         self.calls = 0
         self.failed = 0
         self.skipped = 0
@@ -207,14 +216,24 @@ class LiveTicker:
             "schema": "reasoner.request.v1",
             "request_id": f"{session_id}-tick{self.calls}"[-64:],
             "role": "structured", "model": self.model,
-            "template": TICKS_TEMPLATE, "language": self.language,
+            "template": self.template, "language": self.language,
             "context": {"window": lines, "speaker_roles": dict(self.roles),
                         "focus": answers[-1]},
             "payload": {**payload, "answers": answers},
             "constraints": {"deadline_ms": TICKS_DEADLINE_MS},
         }
         try:
-            response = self.reasoner.reason(request, CancelToken())
+            try:
+                response = self.reasoner.reason(request, CancelToken())
+            except ReasonerRejected:
+                if self.template != TICKS_TEMPLATE:
+                    raise
+                self.template = TICKS_FALLBACK
+                LOG.warning("ticks %s: the reasoner refused %s; %s from "
+                            "now on (treated concepts only)",
+                            self.session_id, TICKS_TEMPLATE, TICKS_FALLBACK)
+                request = {**request, "template": TICKS_FALLBACK}
+                response = self.reasoner.reason(request, CancelToken())
         except ReasonerUnavailable as exc:
             self.failed += 1
             LOG.info("ticks %s: reasoner unavailable (%s)",

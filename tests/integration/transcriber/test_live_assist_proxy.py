@@ -176,6 +176,13 @@ def test_the_lv16_session_routes_are_forwarded() -> None:
     assert seen == ["/sessions/d1/mode", "/sessions/d1/speakers/S2",
                     "/sessions/d1/mandatory/aviso-datos"]
     assert not ALLOWED.match("sessions/d1/mandatory/Bad_Item")
+    # #286: a concept marked as asked by hand.
+    answer = web.post("/api/assist/sessions/d1/points/s2/p1",
+                      json={"asked": True}, headers=auth)
+    assert answer.status_code == 200
+    assert seen[-1] == "/sessions/d1/points/s2/p1"
+    assert not ALLOWED.match("sessions/d1/points/x/p1")
+    assert not ALLOWED.match("sessions/d1/points/s2/p1/x")
     assert web.post("/api/assist/sessions/d1/speakers/.x", json={},
                     headers=auth).status_code == 404
 

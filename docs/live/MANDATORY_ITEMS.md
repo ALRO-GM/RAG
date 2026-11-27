@@ -48,6 +48,36 @@ check is a word-count cosine with its own threshold (0.5, not measured;
 that does not answer leaves the items pending (they can still be ticked)
 and the page says so once.
 
+## From the first words (#286)
+
+The check starts with the employee's **first** final sentence: the
+tracker reads the list (`MandatoryTracker.start`) before the session's
+events are followed, and nothing waits for a warm-up or skips the first
+minute. Since #286 the start of a **live** session also sends one check
+whose answer is ignored («Hola.»; it never ticks anything and a failure
+says nothing), on its own thread, so it never waits in the checks' queue
+or blocks anything, and the RAG loads its model and the examples'
+vectors (computed once per process) before the first real sentence
+instead of on it. A replay or a rebuild sends none.
+
+Time from saying an item to its tick = speech end → final + the RAG
+check + the feed (the orchestrator's part is negligible). Measured
+2026-11-27 with `experiments/live/lv286/mandatory_timing.py --rag`
+(`CUDA_VISIBLE_DEVICES= HF_HUB_OFFLINE=1 PYTHONPATH=.`):
+
+| Part | Measured | How |
+|---|---|---|
+| speech end → final | p50 591–753 ms, p90 739–966 ms | `LIVE_MEASURES.md` (real transcriber, synthetic audio, three runs) |
+| orchestrator: final → checklist published, first sentence of the session | p50 7.6 µs, p90 7.9–8.0 µs (500 runs, two runs) | the script's `orchestrator` part: a port that answers at once, inline executor |
+| RAG check, **CPU**, in process | first check 3,848–5,313 ms (model load + examples); then p50 384–640 ms, p90 749–759 ms (90 checks of the 18 interview lines of `experiments/live/lv16/mandatory_lines.json`, two runs) | the script's `rag` part: `MandatoryItems.check` with the knowledge model |
+| RAG check on the running service (GPU) | **not measured** | it needs the running services |
+
+So on the CPU path an item said in the first sentence is ticked about
+1–1.4 s after the speech ends once warm (p50); without the warm-up the
+first sentence after a RAG start would have paid the 4–5 s cold check.
+(An earlier run of the same measurement gave 6,213 ms, 549 / 774 ms and
+5.3 / 5.7 µs: the machine was busy with other work both times.)
+
 ## Threshold (measured 2026-11-21)
 
 `experiments/live/lv16/mandatory_lines.json`: 43 synthetic employee

@@ -23,6 +23,12 @@
 // being asked is `current`; `topicFocus()` says what of it is still to
 // treat («Falta por tratar: B, C»). "Treated" only means the candidate
 // talked about it: a hint for the interviewer, never a judgement.
+//
+// #286: each topic carries the level the server computed (none → named →
+// treated → well treated; it only grows), each concept whether its question
+// was asked (apart from treated), and the topics message names the next
+// concept to ask (`next`). The level says how much the topic was talked
+// about, never how good the answers were.
 
 export const SUPPORT = "live_assist.support";
 export const INTERVIEW = "live_assist.interview";
@@ -308,6 +314,7 @@ export class LiveState {
     this.notices = []; // { code, message } from the orchestrator
     this.avoid = []; // lines better avoided: { utterance, category, title, why, alternative, state }
     this.topics = null; // a demo's topics: [{ id, name, done }], else the script phases
+    this.next = null; // #286: the next concept to ask { topic, topic_name, point, text, question, again }
     this.demo = null; // { id, title, candidate, result_session, note } of a scripted demo
     this.core = null; // the candidate's profile with the core questions (#235), or null
     this.streamTime = 0; // the latest event's stream time (seconds)
@@ -371,6 +378,8 @@ export class LiveState {
         break;
       case "topics":
         if (Array.isArray(message.topics)) this.topics = message.topics.filter((x) => x && x.id && x.name);
+        // #286: the next concept to ask (the server's rule), or null.
+        this.next = readNext(message.next);
         break;
       case "core":
         if (message.profile && Array.isArray(message.profile.questions)) {
@@ -630,8 +639,15 @@ export class LiveState {
         // The topic's concepts and whether each was treated in this round (#258).
         ...(Array.isArray(x.points) && x.points.length ? { points: x.points.filter((p) => p && p.id && p.text).map((p) => ({
           id: p.id, text: p.text, status: ["treated", "unknown"].includes(p.status) ? p.status : "pending", ...(p.en ? { en: p.en } : {}),
+          // #286: whether its question was asked ({ by, at }), apart from whether it was treated.
+          ...(p.asked && ASKED_BY.includes(p.asked.by) ? { asked: { by: p.asked.by, at: Number(p.asked.at ?? 0) || 0 } } : {}),
         })) } : {}),
         ...(x.current ? { current: true } : {}),
+        // #286: the level the server computed (it only grows) and the counts behind it.
+        ...(LEVELS.includes(x.coverage?.level) ? { coverage: {
+          level: x.coverage.level, concepts: count(x.coverage.concepts), asked: count(x.coverage.asked),
+          treated: count(x.coverage.treated), covered: count(x.coverage.covered),
+        } } : {}),
       }));
     }
     return this.coverage().map((c) => ({ id: c.phase, phase: c.phase, done: c.state !== "pending" }));
@@ -645,8 +661,9 @@ export class LiveState {
   topicFocus() {
     const topic = this.topicChips().find((c) => c.current && c.points?.length);
     if (!topic) return null;
+    // #286: a concept already asked is not pending any more, whatever the answer.
     return { id: topic.id, name: topic.name, ...(topic.en ? { en: topic.en } : {}), points: topic.points,
-      pending: topic.points.filter((p) => p.status === "pending") };
+      pending: topic.points.filter((p) => p.status === "pending" && !p.asked) };
   }
 
   /** Which side is speaking now (an open partial): "employee", "other" or null. */
@@ -666,6 +683,24 @@ export class LiveState {
   coverage() {
     return coverage(this.page?.script_phases ?? [], this.records);
   }
+}
+
+/** The levels of a topic (#286), lowest first; "treated" and up count as covered. */
+export const LEVELS = ["none", "named", "treated", "well_treated"];
+/** Who marked a concept as asked (#286). */
+export const ASKED_BY = ["rules", "live_model", "hand", "after_session"];
+
+function count(value) {
+  const n = Number(value);
+  return Number.isInteger(n) && n >= 0 ? n : 0;
+}
+
+function readNext(next) {
+  if (!next || typeof next !== "object" || !next.topic || typeof next.question !== "string") return null;
+  return {
+    topic: String(next.topic), topic_name: String(next.topic_name ?? ""), point: next.point ? String(next.point) : null,
+    text: next.text ? String(next.text) : null, question: next.question, again: next.again === true,
+  };
 }
 
 function flagKey(flag) {

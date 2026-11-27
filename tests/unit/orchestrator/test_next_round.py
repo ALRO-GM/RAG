@@ -169,17 +169,23 @@ def test_the_live_round_ticks_concepts_and_tells_the_focus() -> None:
     assert "current" not in published[0]["topics"][0]
     track.on_event(final("t0.s0", "S1", "Cuéntame, ¿qué sabes de "
                                         "zapatillas de running?"))
-    assert focus == ["Tema en curso: «Material de running»; conceptos aún "
-                     "sin tratar: Tipos de pisada y Amortiguación y drop."]
+    # #286: the focus names the next concept to ask, then the rest.
+    assert focus == ["Tema en curso: «Material de running»; siguiente "
+                     "concepto por preguntar: «Tipos de pisada»; después: "
+                     "Amortiguación y drop."]
     track.on_event(final("t1.s0", "S2", "Miro la pisada de cada cliente."))
-    assert str(focus[-1]).endswith("sin tratar: Amortiguación y drop.")
+    assert str(focus[-1]).endswith(
+        "por preguntar: «Amortiguación y drop».")
     last = published[-1]["topics"][0]
     assert last["current"] is True and last["done"] is False
     assert [p["status"] for p in last["points"]] == ["treated", "pending"]
     track.on_event(final("t2.s0", "S2", "El drop no lo conozco."))
     last = published[-1]["topics"][0]
     assert [p["status"] for p in last["points"]] == ["treated", "unknown"]
-    assert last["done"] is True and focus[-1] is None
+    # Nothing left of it: the focus moves to the next topic.
+    assert last["done"] is True and focus[-1] == (
+        "Tema siguiente: «Caja registradora»; pregunta por él.")
+    assert published[-1]["next"]["topic"] == "s2"
     assert track.result() == (["s1"], [])
     track.on_event(final("t3.s0", "S1", "¿Has manejado alguna caja "
                                         "registradora?"))

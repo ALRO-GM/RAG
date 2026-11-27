@@ -51,6 +51,9 @@ class DemoPoint(BaseModel):
     text: str = Field(min_length=1)
     covered_by: Optional[str] = None
     """The sentence that treats it; none: it is never treated."""
+    asked_by: Optional[str] = None
+    """The interviewer's sentence that asks it (#286); none: it is never
+    asked (it may still be treated)."""
     en: Optional[Dict[str, str]] = None
     """``text`` in English."""
 
@@ -75,7 +78,9 @@ class DemoTopic(BaseModel):
         named = [self.covered_by]
         if self.asked_by:
             named.append(self.asked_by)
-        return named + [p.covered_by for p in self.points if p.covered_by]
+        return named + [p.covered_by for p in self.points
+                        if p.covered_by] + [
+            p.asked_by for p in self.points if p.asked_by]
 
 
 class DemoSuggestion(BaseModel):

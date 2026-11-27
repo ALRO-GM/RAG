@@ -31,7 +31,13 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Literal, Mapping, Optional, Sequence, Tuple
 
 from orchestrator.domain.candidate import Round
-from orchestrator.domain.interview import InterviewPlan, SheetPoint, Slot
+from orchestrator.domain.interview import (
+    InterviewPlan,
+    PointAsked,
+    SheetPoint,
+    Slot,
+    TopicCoverage,
+)
 from orchestrator.domain.interview_points import join_words
 
 Earlier = Literal["weak", "revisit", "open", "covered"]
@@ -52,23 +58,43 @@ class TopicState:
         self, done: bool = False,
         points: Optional[Sequence[SheetPoint]] = None,
         current: bool = False,
+        coverage: Optional[TopicCoverage] = None,
+        asked: Optional[Mapping[str, PointAsked]] = None,
     ) -> Dict[str, Any]:
         """The topic chip of the live page (``{"type": "topics"}``).
 
         A slot with concepts (#258) lists them with their status in this
-        round (``treated``, ``pending``, ``unknown``); ``current`` marks
-        the topic being asked.
+        round (``treated``, ``pending``, ``unknown``) and, since #286,
+        whether their question was asked (``asked``: ``{"by", "at"}``
+        or ``null``); ``current`` marks the topic being asked;
+        ``coverage`` (#286) its level and counts.
         """
         topic: Dict[str, Any] = {
             "id": self.slot.id, "name": self.slot.label, "done": done,
             "earlier": self.earlier, "level": self.slot.level,
         }
+        marks = asked or {}
         if points:
-            topic["points"] = [{"id": p.id, "text": p.text,
-                                "status": p.status} for p in points]
+            topic["points"] = [
+                {"id": p.id, "text": p.text, "status": p.status,
+                 **({"asked": _asked(marks.get(p.id))}
+                    if coverage is not None else {})}
+                for p in points]
         if current:
             topic["current"] = True
+        if coverage is not None:
+            topic["coverage"] = {
+                "level": coverage.level, "concepts": coverage.concepts,
+                "asked": coverage.asked, "treated": coverage.treated,
+                "covered": coverage.covered}
         return topic
+
+
+def _asked(mark: Optional[PointAsked]) -> Optional[Dict[str, Any]]:
+    """A concept's asked mark on the feed: who and when (no words)."""
+    if mark is None:
+        return None
+    return {"by": mark.by, "at": mark.at}
 
 
 def round_from_sheet(
@@ -181,6 +207,33 @@ def focus_line(
                 f"{join_words(pending, language)}.")
     return (f"Tema en curso: «{label}»; conceptos aún sin tratar: "
             f"{join_words(pending, language)}.")
+
+
+def next_line(
+    label: str, point: Optional[str], rest: Sequence[str],
+    current: bool, language: str = "es",
+) -> str:
+    """The suggester's focus on the next concept to ask (#286).
+
+    ``point``: the concept proposed (``None``: the topic itself);
+    ``rest``: the topic's other concepts not covered yet; ``current``:
+    the topic is the one being asked (else it is the next one).
+    """
+    others = [r for r in rest if r != point]
+    if language[:2] == "en":
+        head = (f"Topic being asked: «{label}»" if current
+                else f"Next topic: «{label}»")
+        line = (f"{head}; next concept to ask about: «{point}»" if point
+                else f"{head}; ask about it")
+        tail = (f"; then: {join_words(others, language)}" if others
+                else "")
+        return f"{line}{tail}."
+    head = (f"Tema en curso: «{label}»" if current
+            else f"Tema siguiente: «{label}»")
+    line = (f"{head}; siguiente concepto por preguntar: «{point}»" if point
+            else f"{head}; pregunta por él")
+    tail = (f"; después: {join_words(others, language)}" if others else "")
+    return f"{line}{tail}."
 
 
 def with_focus(goal: Optional[str], line: Optional[str]) -> Optional[str]:

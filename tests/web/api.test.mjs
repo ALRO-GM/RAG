@@ -138,3 +138,12 @@ test("the voice sample comes back as audio with what was used", async () => {
   const failing = recorder(() => json(503, { code: "unavailable", message: "no voice bot here" })).api;
   await assert.rejects(failing.voiceSample({}), (error) => error.status === 503);
 });
+
+test("a concept is marked by hand, and an undo names the mark it undoes (#286)", async () => {
+  const { api, calls } = recorder(() => json(200, { asked: null }));
+  await api.markAsked("s 1", "s2", "p1", true);
+  await api.markAsked("s 1", "s2", "p1", false, { by: "rules", at: 10 });
+  assert.equal(calls[0].url, "/api/assist/sessions/s%201/points/s2/p1");
+  assert.deepEqual(JSON.parse(calls[0].init.body), { asked: true });
+  assert.deepEqual(JSON.parse(calls[1].init.body), { asked: false, mark: { by: "rules", at: 10 } });
+});

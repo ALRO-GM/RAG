@@ -65,6 +65,9 @@ from orchestrator.application.live_judgement import (
 )
 from orchestrator.application.live_ticks import LiveTicker
 from orchestrator.application.next_round import TopicTracker
+from orchestrator.domain.interview_coverage import (
+    without_words as coverage_without_words,
+)
 from orchestrator.application.demo import ScriptedAssist
 from orchestrator.application.feed import Feed
 from orchestrator.application.interview import (
@@ -1273,7 +1276,8 @@ class LiveSessions:
         states = topic_states(plan, profile.rounds)
         session.topics = TopicTracker(plan, states, session.roles,
                                       session.feed.publish,
-                                      session.product.language)
+                                      session.product.language,
+                                      clock=self.clock.now)
         session.topics.start()
         reasoner = session.product.reasoner
         session.judge = LiveJudge(
@@ -1508,6 +1512,7 @@ class LiveSessions:
             tracker = MandatoryTracker(
                 self.mandatory, knowledge.domains[0], session.roles,
                 session.feed.publish, self.executor(),
+                warm=session.mode == "live",
             )
             session.tracker = tracker
             tracker.start()
@@ -1577,6 +1582,11 @@ class LiveSessions:
         }
         if session.ticker is not None:
             record["ticks"] = session.ticker.view()  # numbers only
+        if session.topics is not None:
+            # #286: each topic's level and each concept asked / treated,
+            # ids and times only (no words).
+            record["coverage"] = coverage_without_words(
+                session.topics.coverage())
         session.handoff = record
         session.feed.publish({"type": "handoff", "handoff": record})
         self._write_handoff(session)
@@ -1646,6 +1656,27 @@ class LiveSessions:
                                         round(self.clock.now(), 3))
         except TickRefused as exc:
             raise SessionError("invalid_request", str(exc)) from exc
+
+    def mark_asked(self, session_id: str, topic: str, point: str,
+                   asked: bool,
+                   mark: Optional[Tuple[str, Optional[float]]] = None,
+                   ) -> Document:
+        """Mark a concept's question as asked by hand, or undo it (#286).
+
+        Recorded ``by: "hand"`` at the time of the click in stream
+        time; undoing removes the mark ``mark`` names (``(by, at)``),
+        whoever made it, and is recorded (``undone``); a repeat is a
+        no-op.
+        """
+        session = self._running(session_id)
+        if session.topics is None:
+            raise SessionError("not_found", "this session has no topics")
+        try:
+            # Dated at the click, in stream time (the tracker's clock).
+            return session.topics.mark_asked(topic, point, asked,
+                                             mark=mark)
+        except KeyError as exc:
+            raise SessionError("not_found", "no such concept") from exc
 
     def _running(self, session_id: str) -> _Session:
         session = self._find(session_id)
