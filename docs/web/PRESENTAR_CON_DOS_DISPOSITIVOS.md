@@ -49,6 +49,28 @@ dispositivo que comparte.
    pantalla de la tableta tal cual.
 3. El ordenador solo mira: desde él no se puede cambiar nada.
 
+## «Estudio» e «Investigación»
+
+Son páginas aparte de la aplicación, pero la sesión compartida sigue al
+ir a ellas y al volver, en los dos sentidos. No hay que volver a poner el
+nombre ni la contraseña. El otro dispositivo sigue mostrando la página
+anterior un momento (en la simulación del enlace público, entre 0,8 y
+1,4 s) y luego muestra la nueva entera. Desde un dispositivo
+con «Envía acciones» se puede ir a ellas desde el menú lateral, usar su
+índice de contenidos, desplazarse, abrir las tablas de datos, buscar y
+filtrar las referencias, y volver a la aplicación con «Inicio». En las dos
+páginas está el mismo botón «Compartir pantalla»: se puede empezar,
+gestionar o dejar de compartir, y unirse, desde ellas.
+
+- Un enlace a otra web (las referencias de «Investigación», las fuentes
+  de «Estudio») tocado en el dispositivo unido se abre **en ese
+  dispositivo**, en una pestaña nueva; el proyector no se mueve. Tocado en
+  el dispositivo que comparte se abre allí en una pestaña nueva: vuelve a
+  la pestaña de la aplicación para seguir.
+- En el dispositivo que comparte, **no abras páginas de la aplicación en
+  una pestaña nueva** mientras compartes: la pestaña nueva se quedaría con
+  la sesión y la antigua dejaría de compartir.
+
 ## Antes de empezar (lista de comprobación)
 
 - [ ] Los **dos** dispositivos han entrado en la aplicación antes
@@ -80,7 +102,8 @@ dispositivo que comparte.
   otro indica «el dispositivo que comparte se está reconectando». Tienes
   **10 minutos** para volver sin perder la sesión.
 - Si se recarga la página del dispositivo unido, vuelve sola a la sesión,
-  sin contraseña.
+  sin contraseña. Lo mismo el dispositivo que comparte, al recargar o al
+  pasar a «Estudio» o «Investigación» y volver.
 - Si pasan más de 10 minutos, la sesión se cierra. Vuelve a compartir y
   únete otra vez.
 - Sin wifi en el lugar: comparte los datos de un móvil con los dos

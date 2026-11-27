@@ -6,6 +6,7 @@
 import { translateStatic } from "./i18n.js";
 import { installLanguageSwitch } from "./lang-switch.js";
 import { installShell } from "./shell.js";
+import { installPageShare } from "./page-share.js";
 import { isStudyData } from "./lib/study.js";
 import { renderMessage, renderStudy } from "./views/study.js";
 
@@ -44,6 +45,9 @@ async function start() {
 }
 
 translateStatic(document);
-installLanguageSwitch(document.querySelector(".top .lang"), draw);
-installShell({ onLanguage: draw });
+let share = null;
+const relabel = () => { draw(); share?.relabel(); };
+installLanguageSwitch(document.querySelector(".top .lang"), relabel);
+installShell({ onLanguage: relabel });
+share = installPageShare(); // #284: a shared session goes on here
 start();

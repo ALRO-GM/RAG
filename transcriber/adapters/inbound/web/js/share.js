@@ -21,7 +21,7 @@ import {
   ACTIONABLE, MirrorSource, MirrorView, elementScrollOf, elementScrollTo, pointerAt, scrollOf, scrollTo,
 } from "./lib/mirror.js";
 import {
-  ShareLink, cleanLabel, deviceKind, endedKey, randomPin, refusalKey, socketUrl, statusKey, validName, validPin,
+  ShareLink, cleanLabel, deviceKind, endedKey, externalUrl, randomPin, refusalKey, socketUrl, statusKey, validName, validPin,
 } from "./lib/share.js";
 import { SoundPlayer, installSoundBridge } from "./share-sound.js";
 
@@ -61,6 +61,12 @@ function kept() {
   } catch {
     return null;
   }
+}
+
+/** The address of the link at `node` when it leaves this site (#284), else null. */
+function leavingUrl(node) {
+  const link = node?.closest?.("a[href]");
+  return link ? externalUrl(link.getAttribute("href"), location.href) : null;
 }
 
 /** The theme the sharing device shows, resolved (a joined device may follow another system theme). */
@@ -407,6 +413,16 @@ export function installShare({ api, readCode, isBusy = () => false, pause = () =
     };
     document.addEventListener("pointermove", onPointer, true);
     document.addEventListener("pointerdown", onPointer, true);
+    // #284: a link to another site opens in a new tab while sharing, so this
+    // page (and the shared session with it) stays.
+    const onLinkClick = (event) => {
+      if (!s || !event.isTrusted || event.defaultPrevented || event.button !== 0) return;
+      const url = leavingUrl(event.target);
+      if (!url) return;
+      event.preventDefault();
+      globalThis.open(url, "_blank", "noopener,noreferrer");
+    };
+    document.addEventListener("click", onLinkClick);
     const bridge = installSoundBridge({
       win: globalThis,
       remote: () => Boolean(s?.roster && s.roster.sound !== s.me),
@@ -417,7 +433,7 @@ export function installShare({ api, readCode, isBusy = () => false, pause = () =
     s.cleanup.push(() => observer.disconnect(), () => rootObserver.disconnect(), () => dark?.removeEventListener?.("change", onScheme),
       () => document.removeEventListener("scroll", onScroll, true), () => document.removeEventListener("focusin", onFocus, true),
       () => document.removeEventListener("pointermove", onPointer, true), () => document.removeEventListener("pointerdown", onPointer, true),
-      bridge.uninstall, () => clearInterval(timer), () => setHostBlock(false));
+      () => document.removeEventListener("click", onLinkClick), bridge.uninstall, () => clearInterval(timer), () => setHostBlock(false));
     fill(pill, h("button", { type: "button", class: "share-pill-button", onClick: () => openPanel() },
       icon("share"), h("span", { class: "share-status", role: "status" })));
     pill.hidden = false;
@@ -533,6 +549,8 @@ export function installShare({ api, readCode, isBusy = () => false, pause = () =
         const el = s.source.nodeById(entry[0]);
         if (el) elementScrollTo(el, entry, body.same === 1);
       }
+    } else if (body.k === "click" && leavingUrl(s.source.nodeById(body.node))) {
+      // #284: never leave for another site on a joined device's behalf (it opened the link itself).
     } else {
       s.source.applyInput(body, globalThis);
     }
@@ -770,6 +788,12 @@ export function installShare({ api, readCode, isBusy = () => false, pause = () =
       event.preventDefault(); // nothing happens here: the sharing device does it, and its page comes back
       if (!s?.sends) return;
       const target = event.target?.closest?.(ACTIONABLE) ?? event.target;
+      // #284: a link to another site opens here, in a new tab; the sharing device stays where it is.
+      const away = leavingUrl(event.target);
+      if (away) {
+        globalThis.open(away, "_blank", "noopener,noreferrer");
+        return;
+      }
       const node = idOf(target);
       if (node !== null) send({ k: "click", node });
     });

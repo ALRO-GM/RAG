@@ -96,6 +96,29 @@ export function socketUrl(loc, path = "/api/share") {
   return `${loc.protocol === "https:" ? "wss" : "ws"}://${loc.host}${path}`;
 }
 
+/** Schemes of a link that may leave this site (#284). */
+const LEAVING_SCHEMES = new Set(["http:", "https:", "mailto:", "tel:"]);
+
+/**
+ * The address of a link that leaves this site (#284), or null for one of
+ * its own pages, an in-page anchor or a link without an address. Such a
+ * link is never followed on the sharing device on a joined device's
+ * behalf: the joined device opens it itself, in a new tab, and while
+ * sharing the sharing device opens its own in a new tab too, so the
+ * shared session is not left silently.
+ */
+export function externalUrl(href, base) {
+  if (href === null || href === undefined || String(href).trim() === "") return null;
+  let url;
+  try {
+    url = new URL(String(href), base);
+  } catch {
+    return null;
+  }
+  if (!LEAVING_SCHEMES.has(url.protocol)) return null; // scripts, data, blobs: never opened
+  return url.protocol.startsWith("http") && url.origin === new URL(base).origin ? null : url.href;
+}
+
 /**
  * The link of one device to the relay.
  *   hello     { type: "host" | "join", name, pin, label } (the first time)

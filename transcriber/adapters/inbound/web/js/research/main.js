@@ -12,6 +12,7 @@ import {
 import { lang, translateStatic } from "../i18n.js";
 import { installLanguageSwitch } from "../lang-switch.js";
 import { installShell } from "../shell.js";
+import { installPageShare } from "../page-share.js";
 
 const NS = "http://www.w3.org/2000/svg";
 
@@ -357,7 +358,10 @@ function applyLanguage() {
   if (note) note.hidden = lang !== "en";
 }
 
+let share = null;
+const relabel = () => { applyLanguage(); share?.relabel(); };
 applyLanguage();
-installLanguageSwitch(document.querySelector(".top .lang"), applyLanguage);
-installShell({ onLanguage: applyLanguage });
+installLanguageSwitch(document.querySelector(".top .lang"), relabel);
+installShell({ onLanguage: relabel });
+share = installPageShare(); // #284: a shared session goes on here
 start();
