@@ -2625,7 +2625,7 @@ export const en = {
   "mi.copy_name": "Copy of {name}",
   "mi.copy_title": "Copy «{name}»",
   "mi.copy_hint": "The copy starts with the same points and the same way of being used.",
-  "mi.copy_general_hint": "The copy replaces the general list (so its points are not listed twice). You can change that later.",
+  "mi.copy_general_hint": "The copy adds to the general list, as every list does at first; its points are not listed twice. You can change that later.",
   "mi.copied": "List «{name}» created",
   "mi.name": "Name",
   "mi.missing": "List not found",
@@ -2691,4 +2691,8 @@ export const en = {
   "live.list_edit": "See the lists",
   "live.plan_list": "What must be said: {name}",
   "live.summary_list": "Used: {list}.",
+  "mi.instead_of": "Version {version} of the list was gone: the general list was used.",
+  "mi.offer_assign_failed": "The list «{name}» was created but could not be given to this offer ({error}). It is on «What must be said»; choose it here when you can.",
+  "mi.err.too_big": "Together with the general list, this list has too many points (more than 30) or texts too long to check. Remove some points or make it replace the general list.",
+  "mi.err.unavailable": "The general list cannot be read right now, and the list cannot be checked without it. Try again in a while.",
 };

@@ -137,3 +137,50 @@ def test_the_transcriber_hears_the_products_leave_to_keep_audio() -> None:
     assert body["buffer_audio"] is True and body["buffer_max_hours"] == 48
     voice = transcriber_body(product("voicebot.interview"), "v", speakers)
     assert "buffer_audio" not in voice
+
+
+def test_after_a_restart_the_round_keeps_its_list_and_version() -> None:
+    """#294 review: the stored report names the list; it is read again
+    at that version, and the rebuilt report names it too."""
+    from datetime import datetime, timezone
+
+    from orchestrator.adapters.outbound.fs_mandatory import FileMandatory
+    from orchestrator.application.mandatory_lists import MandatoryLists
+    from tests.unit.orchestrator.fixtures import REPO
+    from tests.unit.orchestrator.test_mandatory_lists import (
+        ITEMS,
+        MemoryLists,
+    )
+    port = FileMandatory(REPO / "knowledge" / "domains")
+    lists = MandatoryLists(MemoryLists(), port,
+                           {"interview": "interview.generic"},
+                           lambda: datetime.now(timezone.utc))
+    made = lists.create({"name": "Panadería", "kind": "interview",
+                         "items": ITEMS})
+    lists.update(made["id"], {**made, "items": ITEMS[:1]})  # now v2
+    store = Store()
+    store.save(plan())
+    store.save_result("dev", {"session_id": "r9", "mandatory_list": {
+        "id": made["id"], "name": "Panadería", "general": False,
+        "version": 1}})
+    world = sessions(store, Book())  # nothing in memory: a restart
+    world.mandatory = port
+    world.lists = lists
+    RecoveredRound(world, INLINE).rebuild("r9", transcript("r9"))
+    kept = newest(store)
+    assert kept["mandatory_list"]["id"] == made["id"]
+    assert kept["mandatory_list"]["version"] == 1
+    # The version is gone: the general list stands in, and says so.
+    lists.store.versions[made["id"]].pop(1)  # type: ignore[attr-defined]
+    RecoveredRound(world, INLINE).rebuild("r9", transcript("r9"))
+    kept = newest(store)
+    assert kept["mandatory_list"]["general"] is True
+    assert kept["mandatory_list"]["instead_of"] == {"id": made["id"],
+                                                    "version": 1}
+
+
+def newest(store: Store) -> Dict[str, Any]:
+    """The last report stored for r9 (this fake store appends)."""
+    found: Dict[str, Any] = [x for x in store.results("dev")
+                             if x.get("session_id") == "r9"][-1]
+    return found

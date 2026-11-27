@@ -1992,3 +1992,4 @@ table.data.of-table th[scope="row"] { position: sticky; left: 0; z-index: 1; bac
 .mi-offer-row { align-items: flex-end; }
 .lv-list-box { margin-top: var(--s-2); }
 .lv-tosay-list { font-size: var(--fs-sm); margin-bottom: var(--s-1); }
+.mi-edit button[aria-disabled="true"] { opacity: 0.55; cursor: not-allowed; }

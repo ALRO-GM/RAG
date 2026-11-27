@@ -28,9 +28,14 @@ def _write(path: Path, document: Dict[str, Any]) -> None:
     """Write ``document`` as JSON atomically (mode 600)."""
     path.parent.mkdir(parents=True, exist_ok=True)
     handle, temporary = tempfile.mkstemp(dir=path.parent, suffix=".tmp")
-    with os.fdopen(handle, "w", encoding="utf-8") as out:
-        json.dump(document, out, ensure_ascii=False, indent=1)
-    os.replace(temporary, path)
+    try:
+        with os.fdopen(handle, "w", encoding="utf-8") as out:
+            json.dump(document, out, ensure_ascii=False, indent=1)
+        os.replace(temporary, path)
+    except BaseException:
+        # A failed write leaves no temporary file behind (#294 review).
+        Path(temporary).unlink(missing_ok=True)
+        raise
 
 
 class JsonMandatoryLists:

@@ -114,7 +114,7 @@ STATUS = {
     "not_found": 404, "busy": 409, "wrong_state": 409,
     "invalid_request": 422, "transcriber": 502, "unavailable": 503,
     "unauthorized": 401, "conflict": 409, "offer": 502,
-    "plan_closed": 409, "delete_failed": 500,
+    "plan_closed": 409, "delete_failed": 500, "list_too_big": 422,
 }
 MAX_BODY = 16 * 1024
 RECOVERED_BODY = 8 * 1024 * 1024

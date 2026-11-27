@@ -66,6 +66,7 @@ const FEED_IDLE_MS = 40000; // #263: no byte of the stream for this long (keepal
 function liveError(error) {
   if (error?.code === "orchestrator_unavailable") return t("live.unavailable_body");
   if (error?.code === "transcriber") return t("live.err_transcriber");
+  if (error?.code === "list_too_big") return t("mi.err.too_big"); // #294: the general list grew since
   return describeError(error);
 }
 

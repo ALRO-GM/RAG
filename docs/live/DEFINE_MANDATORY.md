@@ -51,8 +51,14 @@ Son avisos orientativos, no una medición.
 Cada lista **se suma a la lista general** (lo normal: así no se pierde,
 por ejemplo, el aviso de protección de datos) o **la sustituye** (solo se
 dicen sus puntos: comprueba que incluyes los avisos legales que hagan
-falta). Una copia de la lista general la sustituye, para que sus puntos
-no salgan dos veces.
+falta). Una copia de la lista general también se suma: sus puntos no
+salen dos veces, porque conservan los del original. Un punto nuevo nunca
+ocupa el sitio de uno de la lista general, aunque se llame igual.
+
+Una lista no se puede guardar si, junto con la general, pasa de 30
+puntos o sus textos son demasiado largos para comprobarlos: la página
+dice por qué. Tampoco se guarda si en ese momento no se puede leer la
+lista general; prueba de nuevo un poco después.
 
 ## Qué lista usa cada llamada
 
@@ -69,3 +75,6 @@ sigue con la versión con la que empezó; los cambios valen desde la
 siguiente. El resumen del final, el registro de la llamada y la tabla de
 la oferta dicen qué lista y qué versión se usó, y eso no cambia aunque
 después edites o elimines la lista.
+
+El entrevistador con IA (asistente de voz) no usa estas listas: valen
+para las entrevistas en directo.

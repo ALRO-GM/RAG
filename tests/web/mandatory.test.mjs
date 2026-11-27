@@ -179,6 +179,10 @@ class FakeElement extends FakeNode {
   }
   get firstChild() { return this.children[0] ?? null; }
   setAttribute(key, value) { this.attributes[key] = value; }
+  getAttribute(key) { return this.attributes[key] ?? null; }
+  showModal() { this.open = true; }
+  close() { this.open = false; for (const fn of this.listeners.close ?? []) fn(); }
+  focus() {}
   addEventListener(type, fn) { (this.listeners[type] ??= []).push(fn); }
   append(...nodes) { this.children.push(...nodes); }
   replaceChildren(...nodes) { this.children = nodes; }
@@ -245,10 +249,11 @@ test("the editor is buttons and labelled fields; moving says once where the item
     assert.ok(named(box, "Subir «Precio de la tarifa Verano»").disabled, "the first item cannot go up");
     assert.ok(named(box, "Quitar la forma 1 de «Sin permanencia»").disabled, "the only example cannot be removed");
     const save = buttons(box).find((b) => b.text() === es["mi.save"]);
-    assert.equal(save.disabled, true, "nothing to save yet");
+    assert.equal(save.attributes["aria-disabled"], "true", "nothing to save yet");
+    assert.equal(save.disabled, false, "aria-disabled: it keeps the focus");
     await up.fire("click");
     assert.equal(status.textContent, "«Sin permanencia» ahora es el punto 1");
-    assert.equal(save.disabled, false);
+    assert.equal(save.attributes["aria-disabled"], "false");
     const labels = byTag(box, "LABEL").map((l) => l.htmlFor);
     assert.ok(labels.includes("mi-name") && labels.includes("mi-item-0-text") && labels.includes("mi-item-0-phase"));
     const legends = byTag(box, "LEGEND").map((l) => l.text());
@@ -275,8 +280,9 @@ test("typing keeps the draft, a save sends it and shows the warnings, a review t
     name.value = "Campaña Verano 2026";
     await name.fire("input");
     const save = buttons(box).find((b) => b.text() === es["mi.save"]);
-    assert.equal(save.disabled, false);
+    assert.equal(save.attributes["aria-disabled"], "false");
     assert.equal(calls[0][0], "review", "a saved list shows its warnings when it opens");
+    const before = byTag(box, "INPUT");
     await save.fire("click");
     await settle();
     assert.equal(calls[1][0], "save");
@@ -287,6 +293,13 @@ test("typing keeps the draft, a save sends it and shows the warnings, a review t
     const text = box.text();
     assert.ok(text.includes("Avisos (1)") && text.includes(es["mi.warn_heuristic"]));
     assert.equal(statusOf(box).textContent, "«Campaña Verano 2026» guardada (versión 3)");
+    // One announcement (no toast besides the status line), and no redraw:
+    // the same inputs are there, so the focus is not lost.
+    assert.equal(globalThis.document.body.children.length, 0, "no toast");
+    assert.deepEqual(byTag(box, "INPUT"), before);
+    assert.equal(save.attributes["aria-disabled"], "true");
+    await save.fire("click");
+    assert.equal(calls.filter((c) => c[0] === "save").length, 1, "an unchanged list is not saved again");
     const review = buttons(box).find((b) => b.text() === es["mi.review"]);
     await review.fire("click");
     await settle();
@@ -344,6 +357,9 @@ test("the offer card needs the API, and lists the interview lists", async () => 
     await select.fire("change");
     await settle();
     assert.deepEqual(set, [["plan-1", null]], "the general list is sent as null");
+    assert.equal(byTag(card, "SELECT")[0], select, "the same select stays: the keyboard keeps its place");
+    assert.ok(byTag(card, "A").find((a) => a.text().includes(es["mi.edit"])).hidden, "no edit link for the general list");
+    assert.equal(statusOf(card).textContent, "Esta oferta usa ahora «Lista general»");
   });
 });
 
@@ -355,4 +371,55 @@ test("the offer table keeps the list of each live round", async () => {
   ] });
   assert.deepEqual(rows.map((r) => r.mandatoryList?.id ?? null), ["panaderia", null]);
   assert.equal(listUsedText(rows[0].mandatoryList, tr), "Lista «Panadería» · versión 2");
+});
+
+test("a copy made for an offer that cannot be given to it is said, not lost", async () => {
+  await withDom("es", async ({ offerListCard }) => {
+    const api = {
+      mandatoryLists: async () => OVERVIEW,
+      offerMandatory: async () => ({ plan: "plan-1", list: null, name: null }),
+      createMandatoryList: async (body) => ({ id: "dependiente", name: body.name, kind: "interview" }),
+      setOfferMandatory: async () => { throw Object.assign(new Error("down"), { code: "unavailable" }); },
+    };
+    const navigated = [];
+    const card = offerListCard({ api, navigate: (h) => navigated.push(h) }, { id: "plan-1", title: "Dependiente" });
+    await settle();
+    const create = buttons(card).find((b) => b.text().includes(es["mi.offer_create"]));
+    const done = create.fire("click");
+    await settle();
+    const dialog = globalThis.document.body.children.find((n) => n.tagName === "DIALOG");
+    assert.ok(dialog, "the name is asked in the page");
+    const form = byTag(dialog, "FORM")[0];
+    for (const fn of form.listeners.submit ?? []) fn({ preventDefault() {} });
+    assert.equal(dialog.open, false, "a given name confirms the copy");
+    await done;
+    await settle();
+    assert.deepEqual(navigated, []);
+    assert.match(statusOf(card).textContent, /«Dependiente» se ha creado, pero no se ha podido asignar/);
+  });
+});
+
+test("the interview report names the list and version of the round", async () => {
+  await withDom("es", async () => {
+    const { reportPage } = await import("../../transcriber/adapters/inbound/web/js/views/interview-report.js");
+    const page = reportPage({ kind: "live", title: "Dependiente", slots: [], mandatory_list: {
+      id: "general.interview", general: true, version: 1, instead_of: { id: "panaderia", version: 2 } } });
+    const text = page.text();
+    assert.ok(text.includes("Se usó: Lista general · versión 1."));
+    assert.ok(text.includes("La versión 2 de la lista ya no estaba"));
+    assert.ok(!reportPage({ kind: "live", slots: [] }).text().includes("Se usó"));
+  });
+});
+
+test("a list too big to check says so in plain words", async () => {
+  const api = { saveMandatoryList: async () => { throw Object.assign(new Error("x"), { code: "list_too_big" }); } };
+  await withDom("es", async ({ listEditor }) => {
+    const box = listEditor({ api }, SAVED);
+    const name = byTag(box, "INPUT").find((i) => i.id === "mi-name");
+    name.value = "Otra";
+    await name.fire("input");
+    await buttons(box).find((b) => b.text() === es["mi.save"]).fire("click");
+    await settle();
+    assert.equal(statusOf(box).textContent, es["mi.err.too_big"]);
+  });
 });

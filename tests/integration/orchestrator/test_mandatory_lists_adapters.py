@@ -158,7 +158,7 @@ def test_the_list_routes(tmp_path: Path) -> None:
     assert general["general"] is True and len(general["items"]) == 4
     copy = web.post("/mandatory/lists", json={"from": "general.interview",
                                               "name": "Panadería"})
-    assert copy.json()["mode"] == "replace"
+    assert copy.json()["mode"] == "add"  # the ticket's default
     review = web.post("/mandatory/review", json={
         "kind": "support", "items": ITEMS})
     assert review.status_code == 200 and review.json()["short"]
@@ -208,3 +208,18 @@ def test_the_offer_table_names_the_list_of_a_round() -> None:
                                    "version": 2, "general": False}
     assert interview_view(plan, {**sheet, "mandatory_list": "junk"}
                           ).mandatory_list is None
+
+
+def test_a_failed_write_leaves_no_temporary_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def broken(*args: Any, **kwargs: Any) -> None:
+        raise OSError("disk full")
+
+    monkeypatch.setattr(
+        "orchestrator.adapters.outbound.fs_mandatory_lists.os.replace",
+        broken)
+    store = JsonMandatoryLists(tmp_path)
+    with pytest.raises(OSError):
+        store.save(owner())
+    assert list(tmp_path.rglob("*.tmp")) == []

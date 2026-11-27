@@ -287,15 +287,22 @@ def test_bad_lists_are_refused(body: Dict[str, Any]) -> None:
     assert refused.value.code == "invalid_request"
 
 
-def test_a_copy_of_the_general_list_replaces_it() -> None:
+def test_a_copy_of_the_general_list_adds_to_it_without_doubling() -> None:
+    """#294 review: the ticket's default; the ids keep it from doubling."""
     lists = use_case()
     copy = lists.create({"from": "general.support", "name": "Mi copia"})
-    assert copy["mode"] == "replace" and copy["kind"] == "support"
+    assert copy["mode"] == "add" and copy["kind"] == "support"
     assert [i["id"] for i in copy["items"]] == ["aviso-datos",
                                                 "desistimiento"]
     assert [i["phase"] for i in copy["items"]] == ["opening", "during"]
+    owned = lists.store.load(copy["id"])
+    assert len(effective(GENERAL, owned)["items"]) == 2
     second = lists.create({"from": copy["id"], "name": "Otra copia"})
-    assert second["mode"] == "replace" and second["id"] == "otra-copia"
+    assert second["mode"] == "add" and second["id"] == "otra-copia"
+    mine = lists.create({"name": "Propia", "kind": "support",
+                         "mode": "replace", "items": ITEMS})
+    third = lists.create({"from": mine["id"], "name": "Tercera"})
+    assert third["mode"] == "replace"
 
 
 def test_the_overview_lists_the_general_lists_first() -> None:
@@ -544,3 +551,161 @@ def test_the_stored_report_of_a_round_names_its_list() -> None:
     kept = stored(store)  # valid against interview.sheet.v1
     assert kept["mandatory_list"]["id"] == "verano"
     assert kept["mandatory_list"]["version"] == 3
+
+
+# ---- #294 review -----------------------------------------------------------
+
+def test_a_new_item_never_takes_a_general_item_s_place() -> None:
+    lists = use_case()
+    made = lists.create({"name": "Verano", "kind": "support", "items": [
+        {"text": "Desistimiento", "must_say": ["catorce días para pensarlo"]},
+        {"id": "aviso-datos", "text": "Aviso de datos",
+         "must_say": ["sus datos se tratan según la ley vigente"]}]})
+    ids = [i["id"] for i in made["items"]]
+    assert ids == ["desistimiento-2", "aviso-de-datos"]  # not the general
+    listed = effective(GENERAL, lists.store.load(made["id"]))
+    assert [i["id"] for i in listed["items"]] == [
+        "aviso-datos", "desistimiento", "desistimiento-2", "aviso-de-datos"]
+    assert listed["items"][1]["text"] == "14 días"  # the legal item stays
+    # A copy of the general list keeps its ids; a new item added to it
+    # titled like one of them still gets its own.
+    copy = lists.create({"from": "general.support", "name": "Copia"})
+    edit = {**copy, "items": [*copy["items"], {
+        "text": "Aviso datos", "must_say": ["otro aviso de datos más"]}]}
+    saved = lists.update(copy["id"], edit)
+    assert [i["id"] for i in saved["items"]] == [
+        "aviso-datos", "desistimiento", "aviso-datos-2"]
+
+
+def test_an_edit_without_mode_keeps_the_list_s_mode() -> None:
+    lists = use_case()
+    made = lists.create({"name": "Fibra", "kind": "support",
+                         "mode": "replace", "items": ITEMS})
+    body = {k: v for k, v in made.items() if k != "mode"}
+    assert lists.update(made["id"], body)["mode"] == "replace"
+
+
+def test_a_save_needs_the_general_list() -> None:
+    lists = use_case(Port(fail=True))
+    with pytest.raises(ListError) as down:
+        lists.create({"name": "x", "kind": "support", "items": ITEMS})
+    assert down.value.code == "unavailable"
+
+
+def big_items(n: int, words: int = 8) -> List[Dict[str, Any]]:
+    return [{"text": f"Punto {i}", "must_say": [
+        " ".join(["palabra"] * words) + f" {i} {j}" for j in range(6)]}
+        for i in range(n)]
+
+
+def test_a_list_too_big_for_the_check_is_refused_at_save() -> None:
+    lists = use_case()
+    # 2 general items + 20 = 22: fine; 29 general + 2 would not be.
+    lists.create({"name": "Veinte", "kind": "support",
+                  "items": big_items(20, 3)})
+    many = dict(GENERAL, items=[
+        {"id": f"g{i}", "text": "g", "must_say": ["x"]} for i in range(29)])
+    port = Port()
+    port.items = lambda domain: many  # type: ignore[method-assign]
+    crowded = use_case(port)
+    with pytest.raises(ListError) as refused:
+        crowded.create({"name": "Dos", "kind": "support",
+                        "items": big_items(2, 3)})
+    assert "30 points" in str(refused.value)
+    assert refused.value.code == "list_too_big"
+    from orchestrator.adapters.inbound.http_server import STATUS
+    assert STATUS["list_too_big"] == 422
+    replace = crowded.create({"name": "Dos", "kind": "support",
+                              "mode": "replace", "items": big_items(2, 3)})
+    assert replace["mode"] == "replace"
+    wordy = dict(GENERAL, items=[
+        {"id": f"g{i}", "text": "g", "must_say": [
+            "x" * 280 + str(j) for j in range(12)]} for i in range(25)])
+    port_long = Port()
+    port_long.items = lambda domain: wordy  # type: ignore[method-assign]
+    with pytest.raises(ListError) as long:
+        use_case(port_long).create({"name": "Larga", "kind": "support",
+                                    "items": big_items(2, 3)})
+    assert "too long" in str(long.value)
+
+
+def test_a_session_list_is_checked_again_when_the_general_grew() -> None:
+    port = Port()
+    lists = use_case(port)
+    made = lists.create({"name": "Dos", "kind": "support",
+                         "items": big_items(2, 3)})
+    port.items = lambda domain: dict(  # type: ignore[method-assign]
+        GENERAL, items=[{"id": f"g{i}", "text": "g", "must_say": ["x"]}
+                        for i in range(29)])
+    with pytest.raises(ListError):
+        lists.for_session("support", made["id"])
+    del port.items
+    port.fail = True  # the general list cannot be read: no check now
+    assert lists.for_session("support", made["id"]) is not None
+
+
+class SlowLists(MemoryLists):
+    """Saves that take a while, so two requests overlap."""
+
+    def save(self, owned: OwnerList) -> None:
+        import time
+        time.sleep(0.05)
+        super().save(owned)
+
+
+def test_two_saves_of_one_version_give_one_conflict() -> None:
+    import threading
+    lists = MandatoryLists(
+        SlowLists(), Port(), {"support": "support.demo"}, lambda: NOW)
+    made = lists.create({"name": "Verano", "kind": "support",
+                         "items": ITEMS})
+    answers: List[str] = []
+
+    def save(name: str) -> None:
+        try:
+            lists.update(made["id"], {**made, "name": name})
+            answers.append("ok")
+        except ListError as exc:
+            answers.append(exc.code)
+
+    threads = [threading.Thread(target=save, args=(n,)) for n in "AB"]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert sorted(answers) == ["conflict", "ok"]
+    store = lists.store
+    assert isinstance(store, MemoryLists)
+    assert sorted(store.versions[made["id"]]) == [1, 2]
+
+    made_ids: List[str] = []
+
+    def create() -> None:
+        made_ids.append(lists.create({"name": "Igual", "kind": "support",
+                                      "items": ITEMS})["id"])
+
+    threads = [threading.Thread(target=create) for _ in range(2)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert sorted(made_ids) == ["igual", "igual-2"]
+
+
+def test_a_recorded_list_is_read_at_its_version() -> None:
+    lists = use_case()
+    made = lists.create({"name": "Verano", "kind": "support",
+                         "items": ITEMS})
+    lists.update(made["id"], {**made, "items": ITEMS[:1]})
+    ref = {"id": made["id"], "general": False, "version": 1}
+    again = lists.for_record("support", ref)
+    assert again is not None and again.owned is not None
+    assert again.owned.version == 1 and len(again.owned.items) == 2
+    gone = lists.for_record("support", {**ref, "version": 9})
+    assert gone is not None and gone.owned is None
+    assert gone.ref(GENERAL)["instead_of"] == {"id": made["id"],
+                                               "version": 9}
+    general = lists.for_record("support", None)
+    assert general is not None and general.owned is None
+    assert general.ref(GENERAL).get("instead_of") is None
+    assert lists.for_record(None, ref) is None

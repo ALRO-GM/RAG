@@ -12,7 +12,9 @@ answers, whose report replaces the one stored at the end of the round
 (in the plan's results and the candidate's file: the round now has more
 of the conversation). The candidate and the plan are found from the
 candidate's rounds; the product from the session when this process
-still knows it, else the interview product. A session still in memory
+still knows it, else the interview product. The list of «Lo que hay que
+decir» is the session's, else the one its stored report names, read at
+the version recorded (#294). A session still in memory
 gets the new judgement in its view and on its stream, and its hand-off
 record is written again.
 
@@ -25,6 +27,10 @@ import logging
 from typing import Any, Callable, Iterable, Optional, Protocol, Tuple
 from typing import runtime_checkable
 
+from orchestrator.application.mandatory_lists import (
+    MandatoryLists,
+    SessionList,
+)
 from orchestrator.application.ports import (
     Document,
     Executor,
@@ -36,6 +42,7 @@ from orchestrator.application.rebuild_round import (
 )
 from orchestrator.domain.events import Transcript
 from orchestrator.domain.interview_coverage import earlier_coverage
+from orchestrator.domain.mandatory_lists import kind_of_roles
 
 LOG = logging.getLogger(__name__)
 INTERVIEW = "live_assist.interview"
@@ -79,6 +86,33 @@ class RecoveredRound:
             return None, None
         return plan, profile
 
+    def _session_list(self, live: Any, product: Any, plan: Any,
+                      session_id: str) -> Optional[SessionList]:
+        """The list of «Lo que hay que decir» the round used (#294).
+
+        The session's own while this process still knows it; else the
+        list and version its stored report names, read again at that
+        version (the general list, said in the record, when it is gone).
+        """
+        chosen = getattr(live, "mandatory_list", None)
+        if isinstance(chosen, SessionList):
+            return chosen
+        lists = getattr(self.sessions, "lists", None)
+        if not isinstance(lists, MandatoryLists) or product is None:
+            return None
+        ref: Any = None
+        handoff = getattr(live, "handoff", None)
+        if isinstance(handoff, dict):
+            ref = (handoff.get("mandatory") or {}).get("list")
+        elif plan is not None and self.sessions.interview is not None:
+            try:
+                ref = self.sessions.interview.store.result(
+                    plan.id, session_id).get("mandatory_list")
+            except Exception:  # noqa: BLE001 - none stored: general
+                ref = None
+        roles = [ch.role for ch in product.source.channels.values()]
+        return lists.for_record(kind_of_roles(roles), ref)
+
     def rebuild(self, session_id: str, document: Document) -> Document:
         """Replay ``document`` (``transcript.v1``); return the summary.
 
@@ -96,6 +130,7 @@ class RecoveredRound:
         publish: Callable[[Document], object] = (
             live.feed.publish if live is not None else (lambda m: None))
         wiring = self.sessions.interview if plan is not None else None
+        chosen = self._session_list(live, product, plan, session_id)
         rebuilt = RoundRebuild(
             self.executor, self.sessions.mandatory,
             self.sessions.avoid, wiring,
@@ -109,7 +144,7 @@ class RecoveredRound:
             earlier=earlier_coverage(live.handoff or {})
             if live is not None else None,
             # #294: the same list (and version) the session used.
-            chosen=getattr(live, "mandatory_list", None),
+            chosen=chosen,
         )
         if live is not None:
             if rebuilt.accuracy is not None:

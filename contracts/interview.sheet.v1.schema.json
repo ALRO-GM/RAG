@@ -634,12 +634,57 @@
           ],
           "default": null,
           "title": "Domain"
+        },
+        "instead_of": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ListLost"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A recovered round whose recorded list version was gone: the general list stood in for this one."
         }
       },
       "required": [
         "id"
       ],
       "title": "ListUsed",
+      "type": "object"
+    },
+    "ListLost": {
+      "additionalProperties": false,
+      "description": "The list and version a round recorded, no longer readable.",
+      "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "maxLength": 72,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "version": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Version"
+        }
+      },
+      "title": "ListLost",
       "type": "object"
     }
   },

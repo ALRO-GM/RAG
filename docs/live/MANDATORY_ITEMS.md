@@ -161,10 +161,22 @@ list. The list is read when the session starts: an edit made while it
 runs applies to the next session.
 
 **Adds or replaces.** A list **adds** its items to the general list by
-default, so the data-protection notice is not lost by accident; an item
-whose id is a general item's takes its place. A list that **replaces**
-lists only its own items. A copy of the general list replaces it (its
-items would otherwise be listed twice).
+default, so the data-protection notice is not lost by accident. A list
+that **replaces** lists only its own items. A copy of the general list
+adds too: the items it copied keep the general ids, and an item with a
+general item's id takes that item's place, so nothing is listed twice.
+Only a copied item keeps a general id: a new item gets an id made from
+its text that is never one of the general list's (an item titled
+«Desistimiento» does not replace the general legal item of that id).
+
+**Size.** A save is refused, with a plain reason, when the list together
+with the general list would have more than 30 items (the RAG's bound),
+an item more than 12 examples, or a body that with a 2,000-character
+sentence would pass the RAG's 64 KB limit; a session started with such a
+list (the general list grew since) is refused the same way. A save reads
+the general list for that and to reserve its ids: when it cannot be
+read, nothing is saved (`unavailable`). Saves, creates and deletes run
+one at a time.
 
 **The check is the same.** The tracker still reads the domain's list
 (its threshold, 0.575, and `remind_seconds` are kept: they belong to the
@@ -181,8 +193,15 @@ list. The general list alone is still checked by domain, as before.
 list: its id `general.<kind>`, domain and version). A live interview's
 stored report keeps it too (`interview.sheet.v1` `mandatory_list`, an
 optional field added in #294), and the offer page's table shows it per
-round. A later edit never changes what an old session recorded; a
-recovered round (#265) is checked again with the list the session used.
+round. A later edit never changes what an old session recorded. A
+recovered round (#265) is checked again with the list the session used:
+the session's own while the orchestrator still has it in memory, else
+the list and version its stored report names, read again at that version
+(each version is kept). When that version is gone the general list
+stands in and the record says so (`mandatory_list.instead_of`). The
+rebuilt report names its list too. The offline `rebuild-round` command
+still uses the general list (a follow-up). The interview report page
+shows the list and version.
 
 **Warnings, never a block.** Saving or «Revisar los ejemplos» returns:
 examples of fewer than five words (few words match badly), and examples
@@ -196,6 +215,7 @@ measured, and the threshold itself was measured on the seed lists only
 (above). Without the RAG only the short examples are checked and the
 page says so.
 
-Not in #294: the AI interviewer (`voicebot.interview`) has no «Lo que hay
-que decir» today, so an offer's list applies to live-page interviews
-only; no model writes or proposes items.
+Out of scope of #294: **the AI interviewer (`voicebot.interview`) does
+not use these lists** (it has no «Lo que hay que decir» at all), so an
+offer's list applies to live-page interviews only; no model writes or
+proposes items.

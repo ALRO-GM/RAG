@@ -23,6 +23,14 @@ import {
   newItem, offersUsing, warningLines,
 } from "../lib/mandatory.js";
 
+/** What a refused save says, in plain words (the server's codes). */
+function saveError(error) {
+  if (error?.code === "conflict") return t("mi.err.conflict");
+  if (error?.code === "list_too_big") return t("mi.err.too_big");
+  if (error?.code === "unavailable") return t("mi.err.unavailable");
+  return describeError(error);
+}
+
 /** `#/mandatory/<id>` of a list. */
 export function listHref(id) {
   return `#/mandatory/${encodeURIComponent(id)}`;
@@ -41,7 +49,11 @@ export async function mandatoryView(ctx, root, [listId] = []) {
   const fresh = id.match(/^new-(support|interview)$/);
   if (fresh) {
     root.append(pageHead(t("mi.new_title", { kind: t(`mi.kind.${fresh[1]}`) })),
-      listEditor(ctx, null, { kind: fresh[1], limits: overview.limits, onSaved: (saved) => ctx.navigate(listHref(saved.id)) }));
+      listEditor(ctx, null, { kind: fresh[1], limits: overview.limits, onSaved: (saved) => {
+        // A new list opens as its own page; the toast is the one announcement.
+        toast(t("mi.saved", { name: saved.name, n: saved.version }));
+        ctx.navigate(listHref(saved.id));
+      } }));
     return null;
   }
   let list;
@@ -61,7 +73,7 @@ export async function mandatoryView(ctx, root, [listId] = []) {
     return null;
   }
   root.append(pageHead(listName(list), { lead: t(`mi.kind.${list.kind}`) }),
-    listEditor(ctx, list, { limits: overview.limits, onSaved: () => ctx.navigate(listHref(list.id)) }));
+    listEditor(ctx, list, { limits: overview.limits }));
   return null;
 }
 
@@ -150,8 +162,8 @@ export async function copyList(ctx, list, kind, { name = null, open = true } = {
       h("p", { class: "hint" }, t(list.general || isGeneral(list.id) ? "mi.copy_general_hint" : "mi.copy_hint")), problem],
     confirm: t("mi.copy"),
     onConfirm: () => {
-      problem.hidden = Boolean(input.value.trim());
-      return !problem.hidden;
+      problem.hidden = Boolean(input.value.trim()); // hidden when a name is given
+      return problem.hidden;
     },
   });
   if (!yes) return null;
@@ -216,7 +228,8 @@ export function listEditor(ctx, saved, { kind = saved?.kind ?? "support", limits
   function sync() {
     const errors = listErrors(draft, bounds);
     const dirty = !base || isDirty(draft, base);
-    save.disabled = !dirty || errors.length > 0;
+    // aria-disabled, not disabled: «Guardar» keeps the focus after a save.
+    save.setAttribute("aria-disabled", String(!dirty || errors.length > 0));
     unsaved.hidden = !dirty || !base;
     fill(errorsBox, errors.length && dirty ? h("ul", { class: "hint mi-error-list" },
       errors.map((e) => h("li", {}, t(`mi.err.${e.key}`, { n: e.n, max: e.max })))) : null);
@@ -318,21 +331,30 @@ export function listEditor(ctx, saved, { kind = saved?.kind ?? "support", limits
     }
   });
 
+  let saving = false;
   save.addEventListener("click", async () => {
-    save.disabled = true;
+    if (saving || save.getAttribute("aria-disabled") === "true") return;
+    saving = true;
+    save.setAttribute("aria-disabled", "true");
     try {
       const body = listForSave(draft);
+      const fresh = !base;
       const stored = base ? await ctx.api.saveMandatoryList(base.id, body) : await ctx.api.createMandatoryList(body);
       base = stored;
-      draft = draftOf(stored, kind);
-      drawItems();
+      // The items stay as they are (no redraw, the focus stays): only the
+      // server's ids and the new version come into the draft.
+      draft.id = stored.id;
+      draft.version = stored.version;
+      (stored.items ?? []).forEach((item, i) => { if (draft.items[i]) draft.items[i].id = item.id; });
+      sync();
       showWarnings(stored.warnings);
-      say(t("mi.saved", { name: stored.name, n: stored.version }));
-      toast(t("mi.saved", { name: stored.name, n: stored.version }));
+      if (!fresh) say(t("mi.saved", { name: stored.name, n: stored.version })); // one announcement
       onSaved(stored);
     } catch (error) {
-      say(error?.code === "conflict" ? t("mi.err.conflict") : describeError(error));
+      say(saveError(error));
       sync();
+    } finally {
+      saving = false;
     }
   });
 
@@ -383,12 +405,19 @@ export function offerListCard(ctx, plan) {
     const select = h("select", { id: "mi-offer-list" },
       h("option", { value: generalId("interview"), selected: current === generalId("interview") }, t("mi.general_name")),
       own.map((l) => h("option", { value: l.id, selected: l.id === current }, l.name)));
+    const edit = h("a", { class: "button small", href: listHref(current), hidden: isGeneral(current) }, icon("edit"), t("mi.edit"));
+    let shown = current;
+    // The same select stays (the keyboard keeps its place): only the link and the status change.
     select.addEventListener("change", async () => {
+      const chosen = select.value;
       try {
-        const answer = await ctx.api.setOfferMandatory(plan.id, isGeneral(select.value) ? null : select.value);
+        const answer = await ctx.api.setOfferMandatory(plan.id, isGeneral(chosen) ? null : chosen);
+        shown = chosen;
+        edit.href = listHref(chosen);
+        edit.hidden = isGeneral(chosen);
         status.textContent = t("mi.offer_set", { name: answer?.name ?? t("mi.general_name") });
-        draw();
       } catch (error) {
+        select.value = shown;
         status.textContent = describeError(error);
       }
     });
@@ -401,7 +430,8 @@ export function offerListCard(ctx, plan) {
         await ctx.api.setOfferMandatory(plan.id, made.id);
         ctx.navigate?.(listHref(made.id));
       } catch (error) {
-        toast(describeError(error), { error: true });
+        // The copy exists (it is on the lists page): say so, never a silent orphan.
+        status.textContent = t("mi.offer_assign_failed", { name: made.name, error: describeError(error) });
       }
     });
     fill(box,
@@ -409,8 +439,7 @@ export function offerListCard(ctx, plan) {
       h("p", { class: "hint" }, t("mi.offer_hint")),
       h("div", { class: "row wrap mi-offer-row" },
         h("div", { class: "field" }, h("label", { for: "mi-offer-list" }, t("mi.offer_label")), select),
-        isGeneral(current) ? null : h("a", { class: "button small", href: listHref(current) }, icon("edit"), t("mi.edit")),
-        create),
+        edit, create),
       status);
   }
   fill(box, h("h2", { id: "mi-offer-title" }, t("mi.offer_title")), h("p", { class: "hint" }, t("mi.loading")));

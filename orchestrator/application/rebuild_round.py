@@ -218,11 +218,15 @@ class RoundRebuild:
                     told.append(message)
                     publish(message)
 
-                result.accuracy = LiveJudge(
+                judge_ = LiveJudge(
                     plan, self.wiring, session_id, tell, model,
                     candidate=candidate, candidate_id=candidate_id,
                     attribute=attribute, earlier=earlier,
-                ).judge(topics)
+                )
+                # #294 review: the rebuilt report names its list too.
+                listed = (result.mandatory or {}).get("list")
+                judge_.mandatory_list = dict(listed) if listed else None
+                result.accuracy = judge_.judge(topics)
                 result.parts.append("judgement")
                 found = result.accuracy or next(
                     (m for m in reversed(told) if m.get("type") ==

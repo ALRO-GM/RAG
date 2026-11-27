@@ -17,6 +17,7 @@ edit never changes what an old session says. Plain data and rules: no
 I/O.
 """
 
+import json
 import re
 import unicodedata
 from datetime import datetime
@@ -46,6 +47,14 @@ SHORT_WORDS = 5
 match badly (a heuristic, not measured)."""
 DEFAULT_THRESHOLD = 0.6
 DEFAULT_REMIND = 45
+RAG_MAX_ITEMS = 30
+"""Items the RAG checks in one list (``src/domain/knowledge/mandatory.py``)."""
+RAG_MAX_EXAMPLES = 12
+"""Examples per item the RAG takes."""
+RAG_MAX_BYTES = 64 * 1024
+"""Largest body the RAG reads for one check (its query limit)."""
+SENTENCE_RESERVE = 12 * 1024
+"""Room kept in that body for the sentence (2000 characters, escaped)."""
 PHASE_MOMENTS = {
     "opening": "opening", "closing": "closing",
 }
@@ -107,6 +116,19 @@ class OwnerList(BaseModel):
         return self.model_dump(mode="json")
 
 
+def kind_of_roles(roles: Sequence[str]) -> Optional[str]:
+    """The kind of list a conversation with these roles uses.
+
+    ``support`` when an agent speaks, ``interview`` when an interviewer
+    does; ``None`` otherwise (a voice bot's user).
+    """
+    if "agent" in roles:
+        return "support"
+    if "interviewer" in roles:
+        return "interview"
+    return None
+
+
 def general_id(kind: str) -> str:
     """Return the id of the general list of ``kind``."""
     return f"{GENERAL_PREFIX}{kind}"
@@ -143,21 +165,31 @@ def unique_id(base: str, taken: Sequence[str]) -> str:
 
 
 def with_item_ids(
-    items: Sequence[Mapping[str, Any]], keep: Sequence[str] = ()
+    items: Sequence[Mapping[str, Any]], keep: Sequence[str] = (),
+    reserved: Sequence[str] = (),
 ) -> List[Dict[str, Any]]:
     """Return the editor's items with an id each (the server's ids).
 
     An item keeps the id it brings when that id is in ``keep`` (the
     ids of the list being edited, or of the list it was copied from);
-    any other item gets one made from its text, unique in the list.
+    any other item gets one made from its text, unique in the list and
+    never one of ``reserved`` (the general list's ids: a new item must
+    never take a general item's place by its title, #294 review).
     """
-    taken: List[str] = []
+    used: List[str] = []
+    for raw in items:
+        given = raw.get("id")
+        if isinstance(given, str) and given in keep and given not in used:
+            used.append(given)
+    taken: List[str] = [*reserved, *keep, *used]
     out: List[Dict[str, Any]] = []
+    kept: List[str] = []
     for raw in items:
         item = dict(raw)
         given = item.get("id")
-        if isinstance(given, str) and given in keep and given not in taken:
+        if isinstance(given, str) and given in keep and given not in kept:
             chosen = given
+            kept.append(given)
         else:
             chosen = unique_id(slug(str(item.get("text") or "")), taken)
         taken.append(chosen)
@@ -218,6 +250,24 @@ def effective(general: Mapping[str, Any], owned: OwnerList) -> Dict[str, Any]:
                               or DEFAULT_REMIND),
         "items": items,
     }
+
+
+def too_big(listed: Mapping[str, Any]) -> Optional[str]:
+    """Tell why the RAG could not check ``listed`` (``None``: it can).
+
+    More than :data:`RAG_MAX_ITEMS` items or :data:`RAG_MAX_EXAMPLES`
+    examples in one, or a body that with a sentence would pass the
+    RAG's :data:`RAG_MAX_BYTES`. The reason is a stable code.
+    """
+    items = [i for i in listed.get("items") or [] if isinstance(i, dict)]
+    if len(items) > RAG_MAX_ITEMS:
+        return "too_many_items"
+    if any(len(i.get("must_say") or []) > RAG_MAX_EXAMPLES for i in items):
+        return "too_many_examples"
+    size = len(json.dumps({"list": dict(listed)}).encode("utf-8"))
+    if size + SENTENCE_RESERVE > RAG_MAX_BYTES:
+        return "too_long"
+    return None
 
 
 def _item(item: OwnerItem) -> Dict[str, Any]:

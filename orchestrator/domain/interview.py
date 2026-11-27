@@ -778,6 +778,16 @@ class ListUsed(_Strict):
     version: int = Field(default=0, ge=0)
     mode: Optional[Literal["add", "replace"]] = None
     domain: Optional[str] = Field(default=None, max_length=64)
+    instead_of: Optional["ListLost"] = None
+    """A recovered round whose recorded list version was gone: the
+    general list stood in for this one."""
+
+
+class ListLost(_Strict):
+    """The list and version a round recorded, no longer readable."""
+
+    id: Optional[str] = Field(default=None, max_length=72)
+    version: Optional[int] = None
 
 
 class Sheet(_Strict):

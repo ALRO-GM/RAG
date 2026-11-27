@@ -16,6 +16,7 @@ warns, never refuses: an example close to an example of another item
 example of few words. Both are heuristics, not measurements.
 """
 
+import threading
 from datetime import datetime
 from typing import Any, Callable, Dict, List, Mapping, Optional
 
@@ -42,6 +43,7 @@ from orchestrator.domain.mandatory_lists import (
     short_examples,
     slug,
     summary,
+    too_big,
     unique_id,
     with_item_ids,
 )
@@ -64,10 +66,17 @@ class SessionList:
     read when the session starts.
     """
 
-    def __init__(self, kind: str, owned: Optional[OwnerList]):
-        """Keep the kind and the owner's list (a frozen snapshot)."""
+    def __init__(self, kind: str, owned: Optional[OwnerList],
+                 lost: Optional[Dict[str, Any]] = None):
+        """Keep the kind and the owner's list (a frozen snapshot).
+
+        ``lost``: the list a recorded session used (``{"id",
+        "version"}``) when that version could no longer be read, so the
+        general list stands in for it and the record says so.
+        """
         self.kind = kind
         self.owned = owned
+        self.lost = lost
 
     def effective(self, general: Mapping[str, Any]) -> Dict[str, Any]:
         """Return the list the session checks."""
@@ -77,7 +86,10 @@ class SessionList:
 
     def ref(self, general: Mapping[str, Any]) -> Dict[str, Any]:
         """Return what the session records of its list."""
-        return list_ref(self.owned, general, self.kind)
+        ref = list_ref(self.owned, general, self.kind)
+        if self.lost is not None:
+            ref["instead_of"] = dict(self.lost)
+        return ref
 
 
 class MandatoryLists:
@@ -107,6 +119,9 @@ class MandatoryLists:
         self.domains = dict(domains)
         self.now = now
         self.plan_exists = plan_exists
+        self._lock = threading.Lock()
+        """Saves, creates and deletes one at a time (the routes run on
+        a thread pool): read, check and write never interleave."""
 
     # ---- queries -------------------------------------------------------
 
@@ -153,9 +168,16 @@ class MandatoryLists:
         """Make a list: ``{"name", "kind", "mode"?, "items"}``.
 
         With ``{"from": id, "name"}`` it is a copy of that list (a copy
-        of a general list replaces the general list, so its items are
-        not listed twice; a copy of an owner's list keeps its mode).
+        of a general list adds to it, the default: the items it keeps
+        have the general ids, so they are not listed twice; a copy of
+        an owner's list keeps its mode). The general list is read to
+        reserve its ids and check the combined size: when it cannot be
+        read nothing is saved (``unavailable``).
         """
+        with self._lock:
+            return self._create(body)
+
+    def _create(self, body: Mapping[str, Any]) -> Document:
         if len(self.store.list()) >= MAX_LISTS:
             raise ListError("conflict", f"at most {MAX_LISTS} lists")
         source = body.get("from")
@@ -167,7 +189,7 @@ class MandatoryLists:
             data = {
                 "name": body.get("name") or copied.get("name") or "",
                 "kind": copied["kind"],
-                "mode": "replace" if copied.get("general")
+                "mode": "add" if copied.get("general")
                 else copied.get("mode", "add"),
                 "items": copied["items"],
             }
@@ -180,7 +202,10 @@ class MandatoryLists:
                             f"kind must be one of {KINDS}")
         taken = [o.id for o in self.store.list()]
         list_id = unique_id(slug(str(data.get("name") or ""), 48), taken)
-        owned = self._valid(data, list_id, str(kind), 1, keep)
+        general = self.general(str(kind))
+        owned = self._valid(data, list_id, str(kind), 1, keep,
+                            _ids(general))
+        self._fits(general, owned)
         self.store.save(owned)
         return self._saved(owned)
 
@@ -188,17 +213,22 @@ class MandatoryLists:
         """Save an edit: ``{"version", "name", "mode", "items"}``.
 
         ``version`` is the one the edit was based on (an older one is
-        refused: someone saved first); the kind never changes.
+        refused: someone saved first); the kind never changes, and an
+        edit without ``mode`` keeps the list's.
         """
-        current = self._load(list_id)
-        if body.get("version") != current.version:
-            raise ListError(
-                "conflict",
-                f"the list is at version {current.version}; reload it")
-        owned = self._valid(body, current.id, current.kind,
-                            current.version + 1,
-                            [i.id for i in current.items])
-        self.store.save(owned)
+        with self._lock:
+            current = self._load(list_id)
+            if body.get("version") != current.version:
+                raise ListError(
+                    "conflict",
+                    f"the list is at version {current.version}; reload it")
+            general = self.general(current.kind)
+            owned = self._valid({"mode": current.mode, **body}, current.id,
+                                current.kind, current.version + 1,
+                                [i.id for i in current.items],
+                                _ids(general))
+            self._fits(general, owned)
+            self.store.save(owned)
         return self._saved(owned)
 
     def delete(self, list_id: str) -> Document:
@@ -206,8 +236,9 @@ class MandatoryLists:
         if is_general(list_id):
             raise ListError("invalid_request",
                             "the general list cannot be deleted")
-        self._load(list_id)
-        self.store.delete(list_id)
+        with self._lock:
+            self._load(list_id)
+            self.store.delete(list_id)
         return {"id": list_id, "deleted": True}
 
     def review(self, body: Mapping[str, Any]) -> Document:
@@ -224,9 +255,14 @@ class MandatoryLists:
             raise ListError("invalid_request",
                             f"kind must be one of {KINDS}")
         named = {**body, "name": body.get("name") or "-"}
+        try:
+            reserved = _ids(self.general(str(kind)))
+        except ListError:
+            reserved = []
         owned = self._valid(named, "review", str(kind), 1,
                             [str(i.get("id")) for i in
-                             body.get("items") or [] if isinstance(i, dict)])
+                             body.get("items") or [] if isinstance(i, dict)],
+                            reserved)
         return self._warnings(owned)
 
     # ---- the job offers --------------------------------------------------
@@ -246,17 +282,19 @@ class MandatoryLists:
     def assign(self, plan_id: str, list_id: Optional[str]) -> Document:
         """Make a job offer use an interview list (``None``: general)."""
         self._check_plan(plan_id)
-        if list_id is not None and not is_general(list_id):
-            owned = self._load(list_id)
-            if owned.kind != "interview":
-                raise ListError("invalid_request",
-                                "a job offer takes an interview list")
-        else:
-            list_id = None
-        try:
-            self.store.assign(plan_id, list_id)
-        except KeyError as exc:
-            raise ListError("not_found", f"no offer {plan_id!r}") from exc
+        with self._lock:
+            if list_id is not None and not is_general(list_id):
+                owned = self._load(list_id)
+                if owned.kind != "interview":
+                    raise ListError("invalid_request",
+                                    "a job offer takes an interview list")
+            else:
+                list_id = None
+            try:
+                self.store.assign(plan_id, list_id)
+            except KeyError as exc:
+                raise ListError("not_found",
+                                f"no offer {plan_id!r}") from exc
         return self.offer(plan_id)
 
     # ---- sessions --------------------------------------------------------
@@ -281,16 +319,48 @@ class MandatoryLists:
             used = self.store.offer_list(plan_id)
             if used is not None:
                 try:
-                    return SessionList(kind, self.store.load(used))
+                    owned = self.store.load(used)
                 except KeyError:
                     return SessionList(kind, None)
+                return self._checked(SessionList(kind, owned))
         if list_id is None or is_general(list_id):
             return SessionList(kind, None)
         owned = self._load(list_id)
         if owned.kind != kind:
             raise ListError("invalid_request",
                             f"the list {list_id!r} is not for this product")
-        return SessionList(kind, owned)
+        return self._checked(SessionList(kind, owned))
+
+    def _checked(self, chosen: SessionList) -> SessionList:
+        """Refuse a list the RAG could not check (read again now)."""
+        if chosen.owned is not None:
+            try:
+                general = self.general(chosen.kind)
+            except ListError:
+                return chosen  # the tracker says so once if it stays down
+            self._fits(general, chosen.owned)
+        return chosen
+
+    def for_record(self, kind: Optional[str],
+                   ref: Optional[Mapping[str, Any]]) -> Optional[SessionList]:
+        """Return the list a recorded session used (a recovered round).
+
+        ``ref`` is the hand-off's ``mandatory.list``: the owner's list
+        is read at the version recorded; when that version is gone the
+        general list stands in and the record says so (``instead_of``).
+        """
+        if kind not in KINDS:
+            return None
+        if not isinstance(ref, Mapping) or ref.get("general") is not False:
+            return SessionList(str(kind), None)
+        list_id, version = ref.get("id"), ref.get("version")
+        try:
+            if not isinstance(list_id, str) or not isinstance(version, int):
+                raise KeyError(list_id)
+            return SessionList(str(kind), self.store.load(list_id, version))
+        except KeyError:
+            return SessionList(str(kind), None,
+                               lost={"id": list_id, "version": version})
 
     # ---- helpers ---------------------------------------------------------
 
@@ -314,8 +384,15 @@ class MandatoryLists:
         if not self.plan_exists(plan_id):
             raise ListError("not_found", f"no offer {plan_id!r}")
 
+    def _fits(self, general: Mapping[str, Any], owned: OwnerList) -> None:
+        """Refuse a list the RAG could not check with the general one."""
+        reason = too_big(effective(general, owned))
+        if reason is not None:
+            raise ListError("list_too_big", TOO_BIG[reason])
+
     def _valid(self, body: Mapping[str, Any], list_id: str, kind: str,
-               version: int, keep: List[str]) -> OwnerList:
+               version: int, keep: List[str],
+               reserved: List[str]) -> OwnerList:
         """Return the edit as a list, or refuse it with a short reason."""
         items = body.get("items")
         if not isinstance(items, list) or not all(
@@ -329,7 +406,8 @@ class MandatoryLists:
                 else name,
                 "kind": kind, "mode": body.get("mode", "add"),
                 "version": version,
-                "items": [_clean(i) for i in with_item_ids(items, keep)],
+                "items": [_clean(i) for i in
+                          with_item_ids(items, keep, reserved)],
                 "updated_at": self.now(),
             })
         except ValueError as exc:
@@ -357,6 +435,23 @@ class MandatoryLists:
         except (ListError, MandatoryUnavailable):
             pass
         return found
+
+
+TOO_BIG = {
+    "too_many_items": "together with the general list it has more than "
+                      "30 points; remove some or make it replace the "
+                      "general list",
+    "too_many_examples": "a point has more than 12 ways of saying it",
+    "too_long": "together with the general list its texts are too long "
+                "to check; shorten them or remove some points",
+}
+"""Plain reasons for a list the RAG could not check (#294 review)."""
+
+
+def _ids(listed: Mapping[str, Any]) -> List[str]:
+    """The item ids of a domain's list."""
+    return [str(i.get("id")) for i in listed.get("items") or []
+            if isinstance(i, dict) and i.get("id")]
 
 
 def limits() -> Document:

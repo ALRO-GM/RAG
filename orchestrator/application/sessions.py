@@ -146,7 +146,7 @@ from orchestrator.domain.live_choices import (
     voice_choices,
 )
 from orchestrator.domain.mandatory import EMPLOYEE_ROLES
-from orchestrator.domain.mandatory_lists import is_general
+from orchestrator.domain.mandatory_lists import is_general, kind_of_roles
 from orchestrator.domain.voices import (
     VoicePlan,
     VoiceProfile,
@@ -1912,12 +1912,8 @@ def list_kind(config: ProductConfig) -> Optional[str]:
     ``support`` for an agent's call, ``interview`` for an interviewer's;
     ``None`` for anything else (a voice bot's user).
     """
-    roles = [ch.role for _, ch in sorted(config.source.channels.items())]
-    if "agent" in roles:
-        return "support"
-    if "interviewer" in roles:
-        return "interview"
-    return None
+    return kind_of_roles(
+        [ch.role for _, ch in sorted(config.source.channels.items())])
 
 
 def employee_role(config: ProductConfig) -> str:
