@@ -1276,7 +1276,8 @@ class LiveSessions:
         states = topic_states(plan, profile.rounds)
         session.topics = TopicTracker(plan, states, session.roles,
                                       session.feed.publish,
-                                      session.product.language)
+                                      session.product.language,
+                                      clock=self.clock.now)
         session.topics.start()
         reasoner = session.product.reasoner
         session.judge = LiveJudge(
@@ -1511,6 +1512,7 @@ class LiveSessions:
             tracker = MandatoryTracker(
                 self.mandatory, knowledge.domains[0], session.roles,
                 session.feed.publish, self.executor(),
+                warm=session.mode == "live",
             )
             session.tracker = tracker
             tracker.start()
@@ -1659,23 +1661,18 @@ class LiveSessions:
                    asked: bool) -> Document:
         """Mark a concept's question as asked by hand, or undo it (#286).
 
-        Recorded ``by: "hand"`` with the session's time; undoing
-        removes only a mark made by hand.
+        Recorded ``by: "hand"`` at the time of the click in stream
+        time; undoing removes the mark shown, whoever made it, and is
+        recorded (``undone``).
         """
         session = self._running(session_id)
         if session.topics is None:
             raise SessionError("not_found", "this session has no topics")
         try:
-            return session.topics.mark_asked(topic, point, asked,
-                                             self._stream_seconds(session))
+            # Dated at the click, in stream time (the tracker's clock).
+            return session.topics.mark_asked(topic, point, asked)
         except KeyError as exc:
             raise SessionError("not_found", "no such concept") from exc
-
-    @staticmethod
-    def _stream_seconds(session: _Session) -> float:
-        """The session's time now: its latest event (seconds)."""
-        topics = session.topics
-        return topics.stream_time if topics is not None else 0.0
 
     def _running(self, session_id: str) -> _Session:
         session = self._find(session_id)

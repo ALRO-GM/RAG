@@ -5,6 +5,7 @@ Invented lines and plans only.
 """
 
 import json
+import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -18,7 +19,12 @@ from orchestrator.application.live_judgement import (
     replayed_tracker,
 )
 from orchestrator.application.next_round import TopicTracker
-from orchestrator.application.ports import CancelToken, Document
+from orchestrator.application.live_ticks import LiveTicker
+from orchestrator.application.ports import (
+    CancelToken,
+    Document,
+    ReasonerRejected,
+)
 from orchestrator.domain.events import Transcript
 from orchestrator.domain.interview import (
     InterviewPlan,
@@ -527,3 +533,60 @@ def test_the_board_figure_does_not_change_with_coverage() -> None:
     assert by_id["s4"].asked == 0 and by_id["s4"].coverage == "none"
     assert all(p.asked is None and p.coverage is None
                for p in without.points)
+
+
+# ---- a RAG not restarted with the orchestrator (#286 review) ----------------
+
+class Old(FakeReasoner):
+    """A reasoner that does not know the ``@2`` templates yet."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.templates: List[str] = []
+
+    def reason(self, request: Document, cancel: CancelToken) -> Document:
+        self.templates.append(str(request.get("template")))
+        if str(request.get("template")).endswith("@2") and \
+                request.get("template") != "interview.report@2":
+            raise ReasonerRejected("422")
+        return super().reason(request, cancel)
+
+
+def test_the_tick_call_falls_back_to_v1_once_and_keeps_ticking(
+        caplog: pytest.LogCaptureFixture) -> None:
+    track, _ = tracker()
+    reasoner = Old()
+    ticker = LiveTicker(reasoner, track, dict(ROLES), lambda job: job(),
+                        every_s=0.0, sleep=lambda s: None)
+    with caplog.at_level(logging.WARNING):
+        for n, (uid, who, text) in enumerate(ROUND):
+            event = final(uid, who, text, seq=n, at=5.0 * n)
+            track.on_event(event)
+            ticker.on_event(event)
+    ticks = [t for t in reasoner.templates if t.startswith("interview.t")]
+    assert ticks[:2] == ["interview.ticks@2", "interview.ticks@1"]
+    assert set(ticks[2:]) == {"interview.ticks@1"}
+    assert ticker.failed == 0
+    assert caplog.text.count("refused interview.ticks@2") == 1
+
+
+def test_the_attribution_falls_back_to_v1() -> None:
+    store = Store()
+    reasoner = Old()
+    result = judge(store, reasoner)
+    assert result is not None and result["attribution"] == "after_session"
+    attributions = [t for t in reasoner.templates
+                    if t.startswith("interview.attribution")]
+    assert attributions == ["interview.attribution@2",
+                            "interview.attribution@1"]
+
+
+def test_a_second_question_seen_only_by_the_model_counts() -> None:
+    track, _ = tracker()
+    say(track, ROUND[:4])
+    say(track, [("q9", "S1", "Volviendo a lo de antes: ¿y eso cómo lo ves?"),
+                ("c9", "S2", "Pues no sé.")])
+    track.suggested(track.focus_points(), {"points": [], "asked": [
+        {"id": "s2.p1", "utterance": "q9"}]})
+    assert track.asked_times["s2.p1"] == 2
+    assert track.asked["s2"]["p1"].utterance == "q2"  # the first stays

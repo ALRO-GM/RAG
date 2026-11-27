@@ -240,6 +240,12 @@ class ReasonerUnavailable(Exception):
     """The reasoner service could not be reached."""
 
 
+class ReasonerRejected(ReasonerUnavailable):
+    """The reasoner refused the request as invalid (HTTP 422), e.g. a
+    template revision it does not know yet (#286: a RAG not restarted
+    with the orchestrator)."""
+
+
 class TtsUnavailable(Exception):
     """The text-to-speech process could not speak."""
 

@@ -12,6 +12,7 @@ from orchestrator.adapters.outbound.http_reasoner import HttpReasoner
 from orchestrator.application.ports import (
     CancelToken,
     KnowledgeUnavailable,
+    ReasonerRejected,
     ReasonerUnavailable,
 )
 from tests.unit.orchestrator.fixtures import REPO
@@ -92,6 +93,14 @@ def test_cancelled_before_sending_makes_no_request() -> None:
 def test_reasoner_failures(response: httpx.Response) -> None:
     http = HttpReasoner("http://x", client=client(lambda r: response))
     with pytest.raises(ReasonerUnavailable):
+        http.reason(REQUEST, CancelToken())
+
+
+def test_a_refused_request_is_told_apart() -> None:
+    """#286 review: an unknown template revision (HTTP 422)."""
+    http = HttpReasoner("http://x", client=client(
+        lambda r: httpx.Response(422, json={"detail": "Unknown template"})))
+    with pytest.raises(ReasonerRejected):
         http.reason(REQUEST, CancelToken())
 
 

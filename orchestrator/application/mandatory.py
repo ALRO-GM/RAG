@@ -14,8 +14,9 @@ ticked); its failure is published once as a ``warning``.
 
 The check starts with the first final sentence: nothing waits for a
 warm-up. Since #286 :meth:`MandatoryTracker.start` also sends one
-check whose answer is ignored, so the RAG's first real check of the
-session does not pay for loading its model and the examples' vectors.
+check whose answer is ignored, on its own thread and only in a live
+session, so the RAG's first real check of the session does not pay for
+loading its model and the examples' vectors and nothing waits for it.
 """
 
 import threading
@@ -52,6 +53,8 @@ class MandatoryTracker:
         roles: Speaker id → role (the employee's id may be added later).
         publish: Sends one feed message.
         executor: Runs the checks off the event loop.
+        warm: Send the warm-up check at the start (a live session only:
+            a replay or a rebuild needs none).
     """
 
     def __init__(
@@ -61,8 +64,10 @@ class MandatoryTracker:
         roles: Dict[str, str],
         publish: Callable[[Document], object],
         executor: Executor,
+        warm: bool = False,
     ):
         """Keep the ports; the list is read by :meth:`start`."""
+        self.warm = warm
         self.port = port
         self.domain = domain
         self.roles = roles
@@ -95,7 +100,11 @@ class MandatoryTracker:
             # #286: warm the RAG's check (its model and the examples'
             # vectors, computed once per process) before the employee's
             # first sentence, which is usually the one that says an item.
-            self.executor.submit(self._warm)
+            # Fire and forget on its own thread: never in the checks'
+            # queue, never blocking (an inline executor would wait).
+            if self.warm:
+                threading.Thread(target=self._warm, daemon=True,
+                                 name="mandatory-warm").start()
 
     def _warm(self) -> None:
         """One check whose answer is ignored (a failure says nothing)."""

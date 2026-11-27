@@ -882,7 +882,10 @@ def test_the_interviewer_marks_a_concept_asked_through_the_api() -> None:
     undone = web.post(path, json={"asked": False})
     assert undone.json()["asked"] is None
     assert web.post(f"/sessions/r9/points/{slot.id}/p99",
-                    json={}).status_code == 404
+                    json={"asked": True}).status_code == 404
+    # #286 review: only a real boolean.
+    for wrong in ({}, {"asked": "false"}, {"asked": 0}, {"asked": None}):
+        assert web.post(path, json=wrong).status_code == 422, wrong
     runner.jobs.pop(0)()  # the round ends
     handoff = live.get("r9")["handoff"]
     assert handoff["coverage"][0]["id"] == plan.topics.plan.slots[0].id

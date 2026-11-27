@@ -537,8 +537,11 @@ def create_app(
     ) -> Dict[str, Any]:
         """Mark a concept's question as asked by hand (``asked``, #286)."""
         data = await body(request)
-        return sessions.mark_asked(session_id, topic, point,
-                                   data.get("asked") is not False)
+        asked = data.get("asked")
+        if not isinstance(asked, bool):
+            raise SessionError("invalid_request",
+                               "asked must be true or false")
+        return sessions.mark_asked(session_id, topic, point, asked)
 
     @app.post("/sessions/{session_id}/barge-in")
     async def barge_in(session_id: str) -> Dict[str, Any]:

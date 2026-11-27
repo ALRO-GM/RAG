@@ -60,6 +60,7 @@ from orchestrator.application.replay import transcript_to_events
 from orchestrator.application.ports import (
     CancelToken,
     Document,
+    ReasonerRejected,
     ReasonerUnavailable,
 )
 from orchestrator.domain.interview import (
@@ -97,6 +98,9 @@ from orchestrator.domain.interview_points import quote
 LOG = logging.getLogger(__name__)
 LIVE_JUDGE_TEMPLATE = "interview.report@2"
 ATTRIBUTION_TEMPLATE = "interview.attribution@2"
+ATTRIBUTION_FALLBACK = "interview.attribution@1"
+"""Used when the reasoner refuses ``@2`` (a RAG not restarted with the
+orchestrator, #286 review): no asked concepts after the session."""
 """Since #286 it also says which concepts the interviewer asked."""
 ATTRIBUTION_DEADLINE_MS = 90000
 """Deadline of one attribution call (a slow template, #267)."""
@@ -234,14 +238,28 @@ class LiveJudge:
         ``empty`` (it attributed nothing); never words. Logs counts only.
         """
         parts = batches(lines)
+        template = ATTRIBUTION_TEMPLATE
         found: List[Attribution] = []
         totals: Dict[str, int] = {}
         for n, batch in enumerate(parts):
             request = attribution_request(
                 self.plan, batch, self.model,
-                f"{self.session_id}-attr{n}"[-64:])
+                f"{self.session_id}-attr{n}"[-64:], template)
             try:
-                response = self.wiring.reasoner.reason(request, CancelToken())
+                try:
+                    response = self.wiring.reasoner.reason(
+                        request, CancelToken())
+                except ReasonerRejected:
+                    if template != ATTRIBUTION_TEMPLATE:
+                        raise
+                    template = ATTRIBUTION_FALLBACK
+                    LOG.warning("attribution %s: the reasoner refused %s; "
+                                "%s used (no asked concepts)",
+                                self.session_id, ATTRIBUTION_TEMPLATE,
+                                template)
+                    request = {**request, "template": template}
+                    response = self.wiring.reasoner.reason(
+                        request, CancelToken())
             except ReasonerUnavailable as exc:
                 LOG.warning("attribution %s batch %d: reasoner unavailable: "
                             "%s", self.session_id, n, str(exc)[:200])
@@ -441,7 +459,7 @@ class LiveJudge:
 
 def attribution_request(
     plan: InterviewPlan, lines: List[RoundLine], model: str,
-    request_id: str,
+    request_id: str, template: str = ATTRIBUTION_TEMPLATE,
 ) -> Document:
     """The ``reasoner.request.v1`` of one attribution batch (#268).
 
@@ -452,7 +470,7 @@ def attribution_request(
     return {
         "schema": "reasoner.request.v1", "request_id": request_id,
         "role": "structured", "model": model,
-        "template": ATTRIBUTION_TEMPLATE, "language": plan.language,
+        "template": template, "language": plan.language,
         "context": {"window": []},
         "payload": {
             "title": plan.title,

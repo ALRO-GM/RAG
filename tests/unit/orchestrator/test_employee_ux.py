@@ -1,5 +1,7 @@
 """LV-16: employee, names, assistance modes and mandatory items."""
 
+import threading
+import time
 from typing import Any, Dict, List, Optional, Tuple
 
 import pytest
@@ -143,9 +145,7 @@ def test_only_the_employee_s_sentences_are_checked() -> None:
     track, published = tracker(port)
     track.start()
     assert track.active and published[0]["type"] == "mandatory"
-    # #286: one warm-up check at the start, its answer ignored.
-    assert port.checked == [WARM_TEXT] and len(published) == 1
-    port.checked.clear()
+    assert port.checked == []  # no warm-up unless asked (a live session)
     track.on_event(final("t0.s0", "S2", "Quiero 14 días de prueba"))
     assert port.checked == []
     track.on_event(final("t1.s0", "S1", "Buenos días"))
@@ -185,11 +185,35 @@ def test_the_first_sentence_is_checked_and_a_warm_up_marks_nothing(
     assert [m["type"] for m in published] == ["mandatory"]
 
 
+def test_the_warm_up_runs_on_its_own_thread_and_never_blocks() -> None:
+    """#286 review: an inline executor (replay at full speed) never waits
+    for the warm-up, even when the RAG hangs."""
+    gate = threading.Event()
+    port = FakeMandatory()
+    seen: List[str] = []
+
+    def slow(domain: str, text: str) -> Document:
+        seen.append(text)
+        gate.wait(5)
+        return {"items": []}
+
+    port.check = slow  # type: ignore[method-assign]
+    found = MandatoryTracker(port, "support.demo", {"S1": "agent"},
+                             lambda m: None, InlineExecutor(), warm=True)
+    started = time.monotonic()
+    found.start()
+    assert time.monotonic() - started < 1.0  # it did not wait
+    deadline = time.monotonic() + 2
+    while not seen and time.monotonic() < deadline:
+        time.sleep(0.01)
+    gate.set()
+    assert seen == [WARM_TEXT]
+
+
 def test_a_sentence_given_to_the_employee_later_is_checked() -> None:
     port = FakeMandatory()
     track, _ = tracker(port)
     track.start()
-    port.checked.clear()  # the warm-up check (#286)
     track.on_event(final("t0.s0", "S2", NOTICE))
     assert port.checked == []
     track.roles["ana"] = "agent"

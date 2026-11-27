@@ -14,6 +14,7 @@ import httpx
 from orchestrator.application.ports import (
     CancelToken,
     Document,
+    ReasonerRejected,
     ReasonerUnavailable,
 )
 
@@ -60,6 +61,8 @@ class HttpReasoner:
                 self.url, json=request, headers=self.headers,
                 timeout=self.timeout,
             )
+            if response.status_code == 422:
+                raise ReasonerRejected("422")
             response.raise_for_status()
             body = response.json()
         except (httpx.HTTPError, ValueError) as exc:
