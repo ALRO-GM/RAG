@@ -13,7 +13,7 @@
 import { h } from "../dom.js";
 import { decimal, lang, t } from "../i18n.js";
 import {
-  KINDS, cellOf, companies, competitorCost, competitorsOf, digitsFor, haveIt, maximumLibraries, oursCost,
+  KINDS, cellOf, companies, competitorCost, costScale, competitorsOf, digitsFor, haveIt, maximumLibraries, oursCost,
   ragMaxRows, ragRows, scenarioOf, textOf, versus,
 } from "../lib/competition.js";
 
@@ -311,13 +311,16 @@ function money(low, high) {
 }
 
 /** A range bar on a 0-100 scale: solid to `low`, lighter to `high`. */
-function rangeBar(low, high, max, ours) {
+function rangeBar(low, high, max, ours, offScale = false) {
   const a = Math.max(0.8, (low / max) * 100);
   const b = Math.max(a, (high / max) * 100);
-  return s("svg", { class: `comp-bar comp-range${ours ? " is-ours" : ""}`, viewBox: "0 0 100 10", preserveAspectRatio: "none", "aria-hidden": "true" },
+  return s("svg", { class: `comp-bar comp-range${ours ? " is-ours" : ""}${offScale ? " is-off-scale" : ""}`, viewBox: "0 0 100 10", preserveAspectRatio: "none", "aria-hidden": "true" },
     s("rect", { x: 0, y: 0, width: 100, height: 10, class: "track" }),
     b > a ? s("rect", { x: a, y: 0, width: b - a, height: 10, class: "fill-range" }) : null,
-    s("rect", { x: 0, y: 0, width: a, height: 10, class: "fill-low" }));
+    s("rect", { x: 0, y: 0, width: a, height: 10, class: "fill-low" }),
+    // The break: two slanted gaps cut through the bar near its end, so a
+    // bar drawn at full width is not read as its real length.
+    offScale ? s("path", { d: "M84 11 L87 -1 M89 11 L92 -1", class: "break" }) : null);
 }
 
 function costRows(data, sc) {
@@ -340,7 +343,8 @@ function costRows(data, sc) {
 
 function costTable(data, sc) {
   const { ours, rows } = costRows(data, sc);
-  const max = Math.max(...rows.filter((r) => r.range).map((r) => r.range.high));
+  const scale = costScale(rows.map((r) => ({ id: r.row.id, high: r.range ? r.range.high : null })));
+  const max = scale.max;
   const table = h("table", { role: "table", class: "comp-chart comp-cost-chart" },
     h("caption", { class: "sr-only" }, t("comp.cost.caption", { n: sc.agents, hours: grouped(sc.hours) })),
     chartHead(["comp.col.company", "comp.cost.col.bar", "comp.cost.col.value"]),
@@ -348,9 +352,10 @@ function costTable(data, sc) {
       role: "row", class: `${row.ours ? "is-ours" : ""}${range ? "" : " is-none"}`.trim() || null,
     },
     companyCell(row),
-    h("td", { role: "cell", class: "comp-chart-bar" }, range ? rangeBar(range.low, range.high, max, row.ours) : h("span", { class: "comp-nobar" })),
+    h("td", { role: "cell", class: "comp-chart-bar" }, range ? rangeBar(Math.min(range.low, max), Math.min(range.high, max), max, row.ours, scale.out.includes(row.id)) : h("span", { class: "comp-nobar" })),
     h("td", { role: "cell", class: "comp-chart-value" },
       range ? h("strong", { class: "comp-value" }, money(range.low, range.high)) : h("strong", { class: "comp-value is-muted" }, price ?? t("comp.cost.not_applicable")),
+      scale.out.includes(row.id) ? h("span", { class: "comp-off-scale" }, t("comp.cost.off_scale")) : null,
       row.ours ? h("span", { class: "badge warn comp-estimate" }, t("comp.cost.estimate")) : null,
       h("span", { class: "comp-note" }, note))))));
   return { table, ours, rows };
@@ -362,7 +367,8 @@ function costBody(data, sc) {
   return [
     h("p", { class: "comp-scenario" }, icon("sessions"), t("comp.cost.line", { n: sc.agents, h: cost.hours_per_agent, hours: grouped(sc.hours), min: cost.call_minutes })),
     table,
-    h("p", { class: "hint comp-assume" }, t("comp.cost.legend"), " ", t("comp.cost.assume", { answers: whole(ours.perHour.haiku.answersPerHour) }), " ", t("comp.cost.fair")),
+    h("p", { class: "hint comp-assume" }, t("comp.cost.legend")),
+    h("p", { class: "hint comp-assume" }, t("comp.cost.assume", { answers: whole(ours.perHour.haiku.answersPerHour) }), " ", t("comp.cost.fair")),
     sourcesOf(data, [data.rag.price.source, cost.ours.live_source, cost.ours.analysis_source, cost.ours.analysis_seconds_source, ...rows.flatMap((r) => r.sources)]),
   ];
 }
@@ -395,13 +401,13 @@ function legend() {
 }
 
 function taskChart(data, task, rows) {
-  const { n, of } = haveIt(task, data.competitors);
+  const { n, unknown, of } = haveIt(task, data.competitors);
   const cells = rows.map((row) => ({ row, cell: cellOf(task, row.id) }));
   return h("article", { class: "comp-task", id: `tarea-${task.id}`, "aria-labelledby": `h-tarea-${task.id}` },
     h("header", { class: "comp-task-head" },
       h("h3", { id: `h-tarea-${task.id}` }, tx(task.title)),
       h("p", { class: "comp-task-q" }, tx(task.question)),
-      h("p", { class: "comp-task-count" }, t("comp.task.count", { n, of }))),
+      h("p", { class: "comp-task-count" }, unknown ? t("comp.task.count_unknown", { n, of, u: unknown }) : t("comp.task.count", { n, of }))),
     h("table", { role: "table", class: "comp-chart comp-matrix" },
       h("caption", { class: "sr-only" }, tx(task.title)),
       chartHead(["comp.col.company", "comp.task.col.answer", "comp.task.col.detail"]),

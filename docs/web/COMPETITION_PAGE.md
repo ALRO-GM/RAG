@@ -366,13 +366,13 @@ conversation:
   (300 × 0.10 + 287,729 × 0.20 + 4,585 × 0.01 + 88,498 × 0.50) / 10⁶ =
   **0.10187 USD**, the 0.102 the document reports (the test checks it;
   its Opus indicator row checks out the same way, 1.815). With Opus 5.5
-  (4 / 8 / 0.4 / 20): **4.0748 USD** for the same session (the Opus
+  (4 / 8 / 0.20 / 20; Opus 5.5 cache hits are 0.05× input, $0.20, on the same pricing page): **4.0739 USD** for the same session (the Opus
   session's own tokens were not recorded, so the Haiku session's tokens
   are priced at Opus rates). Scaled by duration (× 3,600 / 881.8 =
-  4.083): **0.4159 USD/h** (Haiku), **16.636 USD/h** (Opus). The
+  4.083): **0.4159 USD/h** (Haiku), **16.632 USD/h** (Opus). The
   meeting had four people and a call has two, so this overstates the
   cost.
-- Total: **0.5112 USD/h** with Haiku, **16.731 USD/h** with Opus.
+- Total: **0.5112 USD/h** with Haiku, **16.727 USD/h** with Opus. The page says the Opus row is not measured: «medido con Haiku; con Opus, los mismos tokens a precio de Opus (no medido)».
 - **The +30 % tokenizer margin of the first version is dropped:** the
   figures are now the tokens and dollars Claude Code counted for the
   measured run, priced at today's list; the repository does not record
@@ -388,7 +388,7 @@ conversation:
 | Row | Small (USD/month) | Large (USD/month) |
 |---|---|---|
 | Us, Haiku for the analysis | 400 × 0.5112 = **204** | **2,045** |
-| Us, Opus for the analysis (default today) | 400 × 16.731 = **6,692** | **66,924** |
+| Us, Opus for the analysis (default today) | 400 × 16.727 = **6,691** | **66,909** |
 
 **Theirs: the published list price applied to the scenario**
 (`cost.competitors`, `planCost`; low and high are the cheapest and the
@@ -400,7 +400,7 @@ dearest plan):
 | NICE CXone | 110 per agent | 249 per agent + 0.25 per session (one session per call assumed) | 550–1,845 | 5,500–18,450 | the copilots (by usage, no rate) |
 | Five9 | 159 per concurrent user (Core, the cheapest plan with voice; Digital at 119 is «Digital channels only»), minimum 50 | same | 7,950 | 7,950 | usage charges that may apply |
 | Twilio | Copilot 0.035 per minute + Flex 1 per active hour (call hours as the least active time) | Copilot + Flex 150 per user | 1,240–1,590 | 12,400–15,900 | the streaming transcription Copilot requires (docs) |
-| Cresta | «Real-Time Agent Assist for Voice, per Call» 1.50 | 150,000 a year up to 100,000 calls, 1.50 per extra call | 3,600–12,500 | 36,000 (both) | the listing does not make clear whether per-call alone is possible; said on the row |
+| Cresta | 150,000 a year up to 100,000 calls; «Real-Time Agent Assist for Voice, per Call» 1.50 is additional usage on top of the contract (the listing's terms), not a plan of its own | same | 12,500 | 36,000 (288,000 calls a year: 188,000 extra at 1.50) | — |
 | Observe.AI | 828 per agent read as a year | 828 per agent read as a month | 345–4,140 | 3,450–41,400 | the listing is unclear, said on the row |
 
 BrightHire and HireVue sell job-interview services with no public price
@@ -412,7 +412,16 @@ minute) are «No comparable», without a figure. Their prices are in
 **Not symmetric, and the page says it:** their prices include their
 phone system or whole service; ours is only what it costs to run the
 language model. `tests/web/competition.test.mjs` checks every number
-above. On the page, the source links of the cost chart, of each task
+above.
+
+**Scale of the chart** (`costScale`): the largest figure of every row
+except our Opus row. When the Opus row is above it (the large team), its
+bar is drawn at full width with a break (two slanted cuts) and the row
+says «Fuera de escala: la barra está cortada» next to its figure, so a
+cut bar is never read as its real length and the other bars stay
+readable. Each task chart says, besides «Según su web, lo tienen N de 12
+empresas», how many publish nothing about it («(7 no lo publican)») when
+that number is not zero. On the page, the source links of the cost chart, of each task
 chart and of the company panel are folded under «Fuentes».
 
 ## 4. Our system: what each statement rests on

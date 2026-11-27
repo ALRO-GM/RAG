@@ -1080,7 +1080,7 @@
       "es": "En su nube, según su web",
       "en": "In its cloud, according to its website"
      },
-     "quote": "Bring people, AI, channels, data, and systems together on one proven, open cloud platform"
+     "quote": "Use our cloud-based IVAs today and migrate your live agents to the Five9 Intelligent Cloud Contact Center when you're ready"
     },
     "cresta": {
      "level": "no",
@@ -1666,7 +1666,7 @@
     "input_per_mtok": 4,
     "output_per_mtok": 20,
     "write_per_mtok": 8,
-    "read_per_mtok": 0.4,
+    "read_per_mtok": 0.2,
     "source": "anthropic_pricing"
    }
   },
@@ -1732,7 +1732,9 @@
    },
    "cresta": {
     "low": {
-     "call": 1.5
+     "year": 150000,
+     "year_calls": 100000,
+     "extra_call": 1.5
     },
     "high": {
      "year": 150000,
@@ -1741,8 +1743,8 @@
     },
     "more": false,
     "note": {
-     "es": "Menor: 1,50 USD por llamada. Mayor: contrato anual de 150.000 USD hasta 100.000 llamadas. El anuncio no deja claro si se puede pagar solo por llamada",
-     "en": "Lower: 1.50 USD per call. Higher: yearly contract of 150,000 USD up to 100,000 calls. The listing does not make clear whether per-call alone is possible"
+     "es": "Contrato anual de 150.000 USD hasta 100.000 llamadas; 1,50 USD por llamada adicional",
+     "en": "Yearly contract of 150,000 USD up to 100,000 calls; 1.50 USD per additional call"
     }
    },
    "observe": {

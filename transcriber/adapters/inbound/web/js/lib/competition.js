@@ -145,10 +145,22 @@ export function cellOf(task, id) {
   return task.cells?.[id] ?? { level: "unknown" };
 }
 
-/** How many competitors have the task (yes or in part), out of how many. */
+/** How many competitors have the task (yes or in part), how many publish nothing about it, out of how many. */
 export function haveIt(task, competitors) {
   const n = competitors.filter((c) => ["yes", "partial"].includes(cellOf(task, c.id).level)).length;
-  return { n, of: competitors.length };
+  const unknown = competitors.filter((c) => cellOf(task, c.id).level === "unknown").length;
+  return { n, unknown, of: competitors.length };
+}
+
+/**
+ * The scale of the cost chart: the largest figure of every row but the
+ * `outlier` rows (our Opus row), so one huge bar does not crush the
+ * others; an outlier above that scale is drawn at full width and marked
+ * «fuera de escala». Rows: [{ id, high }] (null high = no bar).
+ */
+export function costScale(rows, outliers = ["ours-opus"]) {
+  const max = Math.max(...rows.filter((r) => r.high !== null && !outliers.includes(r.id)).map((r) => r.high));
+  return { max, out: rows.filter((r) => r.high !== null && r.high > max).map((r) => r.id) };
 }
 
 /** People, hours, calls and minutes of a month in one scenario. */

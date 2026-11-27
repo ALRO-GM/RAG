@@ -2108,3 +2108,6 @@ table.data.of-table th[scope="row"] { position: sticky; left: 0; z-index: 1; bac
 .comp-old-anchor { display: block; height: 0; scroll-margin-top: calc(var(--topbar-h) + var(--s-2)); }
 @media (min-width: 48rem) { .comp-chart tr.is-ours + tr.is-ours > * { border-top: 1px solid var(--line); } }
 .comp-cost-chart .comp-co { width: 13rem; }
+.comp-range .break { fill: none; stroke: var(--surface); stroke-width: 2.4; vector-effect: non-scaling-stroke; }
+.comp-chart tr.is-ours .comp-range .break { stroke: color-mix(in srgb, var(--active) 70%, var(--surface)); }
+.comp-off-scale { display: flex; width: fit-content; margin: 0.25rem 0 0; padding: 0 0.5rem; border: 1px dashed var(--line-strong); border-radius: var(--r-full); font-size: var(--fs-xs); font-weight: 700; color: var(--text); }

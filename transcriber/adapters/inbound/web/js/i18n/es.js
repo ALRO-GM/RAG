@@ -2574,7 +2574,7 @@ export const es = {
   "comp.cost.other.interviews": "Vende otro servicio: entrevistas de trabajo",
   "comp.cost.other.voicebot": "Vende otro servicio: un asistente de voz que cobra por minuto",
   "comp.cost.legend": "Parte intensa de la barra: el plan más barato. Parte tenue: hasta el plan más caro.",
-  "comp.cost.assume": "Nuestro coste: {answers} llamadas al modelo por hora (calculadas a partir de una llamada de prueba de 108 s) y el análisis medido en una reunión de prueba de 15 minutos, a precio de lista; sin el servidor con tarjeta gráfica ni la luz.",
+  "comp.cost.assume": "Nuestro coste: {answers} llamadas al modelo por hora (calculadas a partir de una llamada de prueba de 108 s) y el análisis de una reunión de prueba de 15 minutos: medido con Haiku; con Opus, los mismos tokens a precio de Opus (no medido). Sin el servidor con tarjeta gráfica ni la luz.",
   "comp.cost.fair": "Sus precios incluyen su centralita o su servicio completo. Precios de lista en USD para EE. UU.",
   "comp.h.tasks": "Tarea por tarea",
   "comp.tasks.lead": "Cada tarea que resolvemos, frente a cada empresa, según lo que publica en su web.",
@@ -2598,6 +2598,8 @@ export const es = {
   "comp.sources": "Fuentes",
   "comp.cost.ours_haiku": "Nosotros, con Haiku en el análisis",
   "comp.cost.ours_opus": "Nosotros, con Opus en el análisis (opción por defecto hoy)",
+  "comp.cost.off_scale": "Fuera de escala: la barra está cortada",
+  "comp.task.count_unknown": "Según su web, lo tienen {n} de {of} empresas ({u} no lo publican)",
   "comp.vs.both": "Los dos por igual",
   // #286: coverage of a live interview (levels, asked vs treated, next concept)
   "cov.level.none": "sin mencionar",

@@ -2574,7 +2574,7 @@ export const en = {
   "comp.cost.other.interviews": "Sells another service: job interviews",
   "comp.cost.other.voicebot": "Sells another service: a voice assistant charged per minute",
   "comp.cost.legend": "Strong part of the bar: the cheapest plan. Faint part: up to the most expensive plan.",
-  "comp.cost.assume": "Our cost: {answers} model calls per hour (worked out from one 108 s test call) and the analysis measured on a 15-minute test meeting, at list price; without the server with a graphics card or electricity.",
+  "comp.cost.assume": "Our cost: {answers} model calls per hour (worked out from one 108 s test call) and the analysis of a 15-minute test meeting: measured with Haiku; with Opus, the same tokens at Opus prices (not measured). Without the server with a graphics card or electricity.",
   "comp.cost.fair": "Their prices include their phone system or their whole service. US list prices in USD.",
   "comp.h.tasks": "Task by task",
   "comp.tasks.lead": "Each task we solve, next to each company, from what it publishes on its website.",
@@ -2598,6 +2598,8 @@ export const en = {
   "comp.sources": "Sources",
   "comp.cost.ours_haiku": "Us, with Haiku for the analysis",
   "comp.cost.ours_opus": "Us, with Opus for the analysis (today's default)",
+  "comp.cost.off_scale": "Off the scale: the bar is cut",
+  "comp.task.count_unknown": "According to their websites, {n} of {of} companies have it ({u} do not publish it)",
   "comp.vs.both": "Both alike",
   // #286: coverage of a live interview (levels, asked vs treated, next concept)
   "cov.level.none": "not mentioned",

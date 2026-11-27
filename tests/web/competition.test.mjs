@@ -8,7 +8,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
-  BASES, KINDS, LEVELS, SCHEMA, WHERE, callCost, cellOf, citedInfoSources, citedSources, companies, competitorCost,
+  BASES, KINDS, LEVELS, SCHEMA, WHERE, callCost, cellOf, citedInfoSources, citedSources, companies, competitorCost, costScale,
   competitorsOf, digitsFor, haveIt, isBilingual, isCompetitionData, maximumLibraries, oursCost, oursPerHour, planCost,
   promptBase, ragMaxRows, ragRows, scenarioOf, textOf, versus,
 } from "../../transcriber/adapters/inbound/web/js/lib/competition.js";
@@ -360,15 +360,16 @@ test("our cost is an estimate from the measured tokens and session cost at list 
   assert.equal(Math.round(haiku.session * 1000) / 1000, data.cost.ours.analysis_usd_reported, "the 0.102 USD MODEL_COMPARISON.md reports");
   assert.ok(near(haiku.analysis, haiku.session * 3600 / 881.8), "the 881.8 s test meeting, scaled by duration");
   const opus = oursPerHour(data.cost, data.rag, "opus");
-  assert.ok(near(opus.session, (300 * 4 + 287729 * 8 + 4585 * 0.4 + 88498 * 20) / 1e6));
+  assert.ok(near(opus.session, (300 * 4 + 287729 * 8 + 4585 * 0.2 + 88498 * 20) / 1e6), "Opus 5.5 cache hits at 0.20 (0.05x)");
   const [small, large] = data.cost.scenarios.map((sc) => oursCost(data.cost, data.rag, scenarioOf(data.cost, sc)));
-  assert.deepEqual([small.haiku, small.opus, large.haiku, large.opus].map(Math.round), [204, 6692, 2045, 66924]);
+  assert.deepEqual([small.haiku, small.opus, large.haiku, large.opus].map(Math.round), [204, 6691, 2045, 66909]);
   assert.equal(es["comp.cost.estimate"], "Estimación de coste, no es un precio");
   assert.match(es["comp.cost.ours_opus"], /Opus.*opción por defecto hoy/);
   assert.match(es["comp.cost.ours_haiku"], /Haiku/);
   assert.match(es["comp.cost.assume"], /llamadas al modelo por hora \(calculadas a partir de una llamada de prueba de 108 s\)/);
   assert.doesNotMatch(es["comp.cost.assume"], /sugerencias por hora \(medidas\)/);
-  assert.match(es["comp.cost.assume"], /sin el servidor con tarjeta gráfica ni la luz/);
+  assert.match(es["comp.cost.assume"], /sin el servidor con tarjeta gráfica ni la luz/i);
+  assert.match(es["comp.cost.assume"], /medido con Haiku; con Opus, los mismos tokens a precio de Opus \(no medido\)/);
   assert.match(VIEW, /t\("comp\.cost\.ours_haiku"\)/);
   assert.match(VIEW, /t\("comp\.cost\.ours_opus"\)/);
   assert.match(data.ours.price.es, /Sin precio definido/, "a cost, never presented as our price");
@@ -382,7 +383,8 @@ test("each company's published price applied to the scenario, or none", () => {
   assert.deepEqual(range("five9", small), [7950, 7950], "Core, the cheapest plan with voice, minimum of 50 seats");
   assert.deepEqual(range("five9", large), [7950, 7950]);
   assert.deepEqual(range("twilio", small), [1240, 1590], "0.035 per minute plus 1 per hour or 150 per user");
-  assert.deepEqual(range("cresta", small), [3600, 12500], "1.50 per call up to the yearly contract");
+  assert.deepEqual(range("cresta", small), [12500, 12500], "the yearly contract; 1.50 per call is only additional usage on top of it");
+  assert.match(data.cost.competitors.cresta.note.es, /1,50 USD por llamada adicional/);
   assert.deepEqual(range("cresta", large), [36000, 36000], "288,000 calls a year: 188,000 extra at 1.50");
   assert.deepEqual(range("observe", small), [345, 4140], "828 per agent, a year or a month: the listing is unclear");
   for (const id of ["brighthire", "hirevue", "metaview", "retell", "vapi", "polyai"]) assert.equal(competitorCost(data.cost, id, small), null, id);
@@ -394,6 +396,24 @@ test("each company's published price applied to the scenario, or none", () => {
     assert.ok(isBilingual(spec.note), id);
   }
   assert.ok(competitorCost(data.cost, "observe", small).unclear);
+});
+
+test("the cost chart's scale: the largest row but our Opus row, which is drawn cut and says «fuera de escala»", () => {
+  const rows = [{ id: "ours-haiku", high: 2045 }, { id: "ours-opus", high: 66909 }, { id: "talkdesk", high: 11250 },
+    { id: "observe", high: 41400 }, { id: "brighthire", high: null }];
+  assert.deepEqual(costScale(rows), { max: 41400, out: ["ours-opus"] });
+  assert.deepEqual(costScale(rows.map((r) => (r.id === "ours-opus" ? { ...r, high: 6691 } : r))), { max: 41400, out: [] }, "not cut when it fits");
+  assert.equal(costScale([{ id: "a", high: 5 }, { id: "ours-opus", high: 9 }], []).out.length, 0, "with no outlier the largest row sets the scale");
+  assert.match(es["comp.cost.off_scale"], /^Fuera de escala/);
+  assert.match(en["comp.cost.off_scale"], /^Off the scale/);
+  assert.match(VIEW, /t\("comp\.cost\.off_scale"\)/, "said in the text, not only drawn");
+  assert.match(VIEW, /class: "break"/);
+});
+
+test("a task chart says how many companies publish nothing about it", () => {
+  assert.deepEqual(haveIt(taskOf("where"), data.competitors), { n: 0, unknown: 7, of: 12 });
+  assert.match(es["comp.task.count_unknown"], /\(\{u\} no lo publican\)/);
+  assert.match(VIEW, /comp\.task\.count_unknown/);
 });
 
 test("us against one company: where we do more, where it publishes nothing, where it does more, what both do", () => {
@@ -413,9 +433,8 @@ test("us against one company: where we do more, where it publishes nothing, wher
       assert.ok(data.sources[offer.source]?.seen, `${c.name}: what it offers has its source`);
     }
   }
-  assert.deepEqual(haveIt(taskOf("where"), data.competitors), { n: 0, of: 12 });
   assert.match(VIEW, /h\("span", \{ id: "competencia"/, "competition.html#competencia lands on the prices");
-  assert.deepEqual(haveIt(taskOf("limits"), data.competitors), { n: 10, of: 12 });
+  assert.deepEqual(haveIt(taskOf("limits"), data.competitors), { n: 10, unknown: 2, of: 12 });
 });
 
 test("every chart is a table with its words: marks carry a word, bars sit next to their figure", () => {
