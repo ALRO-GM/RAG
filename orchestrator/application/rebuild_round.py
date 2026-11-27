@@ -50,7 +50,8 @@ from orchestrator.application.ports import (
 from orchestrator.application.replay import transcript_to_events
 from orchestrator.domain.config import ProductConfig
 from orchestrator.domain.events import LiveEvent, Transcript
-from orchestrator.domain.interview import InterviewPlan
+from orchestrator.domain.interview import InterviewPlan, TopicCoverage
+from orchestrator.domain.interview_coverage import without_words
 from orchestrator.domain.candidate import Round
 from orchestrator.domain.next_round import topic_states
 
@@ -81,6 +82,9 @@ class RebuiltRound:
     accuracy: Optional[Document] = None
     attribution: Optional[str] = None
     attribution_error: Optional[str] = None
+    coverage: Optional[List[Document]] = None
+    """The topics' coverage without words (#286), as the hand-off keeps
+    it: the stored report's when judged, else the replay's."""
     parts: List[str] = field(default_factory=list)
 
     def summary(self) -> Document:
@@ -138,6 +142,7 @@ class RoundRebuild:
         judge: bool = True,
         publish: Publish = lambda message: None,
         attribute: bool = True,
+        earlier: Optional[Mapping[str, TopicCoverage]] = None,
     ) -> RebuiltRound:
         """Replay ``events`` (in order) and return what the round says.
 
@@ -149,7 +154,9 @@ class RoundRebuild:
         candidate's earlier rounds (the order of the topics).
         ``attribute``: the model attributes the round's answers before
         the judgement, as at the end of a live round (#268); ``False``
-        keeps the rules' attribution of the replay.
+        keeps the rules' attribution of the replay. ``earlier``: the
+        round's coverage kept in its hand-off (#286), used when no report
+        of the round is stored.
         """
         result = RebuiltRound(session_id)
         roles_map = dict(roles)
@@ -207,7 +214,7 @@ class RoundRebuild:
                 result.accuracy = LiveJudge(
                     plan, self.wiring, session_id, tell, model,
                     candidate=candidate, candidate_id=candidate_id,
-                    attribute=attribute,
+                    attribute=attribute, earlier=earlier,
                 ).judge(topics)
                 result.parts.append("judgement")
                 found = result.accuracy or next(
@@ -215,6 +222,10 @@ class RoundRebuild:
                      "accuracy" and m.get("state") == "empty"), {})
                 result.attribution = found.get("attribution")
                 result.attribution_error = found.get("attribution_error")
+            judged = (result.accuracy or {}).get("coverage")
+            result.coverage = without_words(
+                [TopicCoverage.model_validate(c) for c in judged]
+                if isinstance(judged, list) else topics.coverage())
         return result
 
 

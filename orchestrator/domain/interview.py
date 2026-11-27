@@ -682,6 +682,10 @@ class PointCoverage(_Strict):
     """The concept's words in the plan when the round was held."""
     status: PointStatus = "pending"
     asked: Optional[PointAsked] = None
+    undone: List[PointAsked] = Field(default_factory=list)
+    """Marks the interviewer undid by hand (#286 review): a mark the
+    rules, the model or they themselves made by mistake. The same line
+    is never marked again."""
 
 
 class TopicCoverage(_Strict):

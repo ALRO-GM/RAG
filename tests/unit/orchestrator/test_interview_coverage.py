@@ -25,6 +25,7 @@ from orchestrator.domain.interview import (
     PointAsked,
     PointCoverage,
     Sheet,
+    TopicCoverage,
 )
 from orchestrator.domain.interview_attribution import (
     RoundLine,
@@ -34,11 +35,12 @@ from orchestrator.domain.interview_attribution import (
 )
 from orchestrator.domain.interview_coverage import (
     WELL_WORDS,
+    asked_concepts,
     TopicFacts,
     TopicRef,
     asks_point,
     counts,
-    hand_marks,
+    earlier_coverage,
     higher,
     is_asking,
     next_proposal,
@@ -109,14 +111,49 @@ def say(track: TopicTracker, lines: List[Tuple[str, str, str]]) -> None:
 
 @pytest.mark.parametrize("text,asking", [
     ("¿Qué tipos de pisada conoces?", True),
-    ("cuéntame qué tipos de pisada conoces", True),  # no «?» (speech)
-    ("Vale, y cómo eliges la talla", True),
+    ("cuéntame qué tipos de pisada conoces", True),  # a request, no «?»
+    ("Háblame de la caja, por favor.", True),
+    ("y has usado docker?", True),  # «?» without «¿» (speech)
+    ("Vale, y cómo eliges la talla", False),  # no «?», no request: missed
     ("La pisada es importante en esta tienda.", False),
     ("Tell me about the cushioning", True),
 ])
-def test_a_line_asks_with_a_question_mark_or_a_question_word(
+def test_a_line_asks_with_a_question_mark_or_a_request(
         text: str, asking: bool) -> None:
     assert is_asking(text) is asking
+
+
+STATEMENTS = [
+    "Como te decía, aquí usamos Docker en producción.",
+    "Bien, como sabes, aquí usamos Docker.",
+    "Cuando entres trabajarás con Kubernetes.",
+    "Que sepas que usamos Docker.",
+    "Te cuento: el equipo usa Docker, ¿vale?",
+    "No vamos a hablar de Kubernetes hoy, ¿vale?",
+    "¿Qué tal el viaje? Usamos Docker.",
+    "Usamos Kubernetes, ¿no?",
+    "Aquí todo va en Docker, ¿verdad? Ya lo verás.",
+]
+QUESTIONS = [
+    "¿Has usado Docker en producción?",
+    "Cuéntame cómo usas Docker.",
+    "Háblame de Kubernetes, por favor.",
+    "Vale. ¿Y con Kubernetes, qué tal?",
+    "¿No has usado Kubernetes nunca?",
+    "y has usado docker?",
+]
+
+
+@pytest.mark.parametrize("text", STATEMENTS)
+def test_a_statement_naming_a_concept_does_not_ask_it(text: str) -> None:
+    """#286 review: tags, negations, question words in statements."""
+    assert not asks_point("Docker", text)
+    assert not asks_point("Kubernetes", text)
+
+
+@pytest.mark.parametrize("text", QUESTIONS)
+def test_a_question_naming_a_concept_asks_it(text: str) -> None:
+    assert asks_point("Docker", text) or asks_point("Kubernetes", text)
 
 
 def test_a_concept_is_asked_when_a_question_names_it() -> None:
@@ -124,6 +161,23 @@ def test_a_concept_is_asked_when_a_question_names_it() -> None:
     assert asks_point("Cuánto tiempo", "¿Y cuánto tiempo estuviste?")
     assert not asks_point("Tipos de pisada", "La pisada importa mucho.")
     assert not asks_point("Cierre de caja", "¿Qué tal el viaje?")
+    # A stem shared with a common verb never identifies a concept alone.
+    assert not asks_point("Dónde trabajó", "¿Puedes trabajar los sábados?")
+    assert asks_point("Sábados", "¿Puedes trabajar los sábados?")
+    assert asks_point("Dónde trabajó", "¿Dónde trabajaste antes?")
+
+
+def test_the_best_match_wins_and_a_tie_marks_nothing() -> None:
+    plan = the_plan()
+    refs = [TopicRef.of(s) for s in plan.slots]
+    found = asked_concepts("¿Puedes trabajar los sábados?", refs)
+    assert found is not None and found.topic == "s5"
+    assert found.points == ("p2",) and found.clear
+    twins = [TopicRef("a", "A", (("p1", "Pruebas de integración"),)),
+             TopicRef("b", "B", (("p1", "Pruebas de integración"),))]
+    assert asked_concepts("¿Haces pruebas de integración?", twins) is None
+    tie = asked_concepts("¿Haces pruebas de integración?", twins, "b")
+    assert tie is not None and tie.topic == "b" and not tie.clear
 
 
 Given = List[Tuple[Optional[str], Optional[str]]]
@@ -190,6 +244,9 @@ def test_the_next_proposal_goes_point_by_point_then_topic_by_topic(
     assert other is not None and other.topic == "b" and other.point is None
     assert other.question == "¿Qué nivel de inglés tienes?"
     end = {**done, "b": TopicFacts(asked=True, answers=1)}
+    # Asked and not answered yet: never again before the answer.
+    assert next_proposal(topics, end, {"a.p2": 1}) is None
+    end["a"].answered = {"p2"}  # answered, but the answer did not treat it
     again = next_proposal(topics, end, {"a.p2": 1})
     assert again is not None and again.again and again.point == "p2"
     assert again.question.startswith("Volviendo a devoluciones")
@@ -240,8 +297,7 @@ def test_a_level_reached_stays_and_a_mention_names_a_topic() -> None:
     assert track.reached()["s1"] == before == "well_treated"
 
 
-def test_the_interviewer_marks_a_concept_by_hand_and_undoes_only_that(
-) -> None:
+def test_the_interviewer_marks_by_hand_and_undoes_any_mark() -> None:
     track, published = tracker()
     say(track, ROUND)
     count = len(published)
@@ -254,11 +310,64 @@ def test_the_interviewer_marks_a_concept_by_hand_and_undoes_only_that(
     # Marked again at once (no event in between): marked again.
     assert track.mark_asked("s3", "p3", True, 44.0)["asked"]["at"] == 44.0
     assert track.mark_asked("s3", "p3", False, 44.0)["asked"] is None
-    # A mark by the rules is never undone by hand.
-    assert track.mark_asked("s2", "p1", False, 45.0)["asked"]["by"] == \
-        "rules"
+    # A mark by the rules is undone too, recorded, and its line never
+    # marks it again (#286 review).
+    assert track.mark_asked("s2", "p1", False, 45.0)["asked"] is None
+    gone = track.coverage()[1].points[0]
+    assert gone.asked is None and [u.utterance for u in gone.undone] == [
+        "q2"]
+    track.on_event(final("q2", "S1", ROUND[2][2], seq=2, at=10.0))
+    assert track.asked["s2"] == {}
     with pytest.raises(KeyError):
         track.mark_asked("s3", "p9", True, 1.0)
+
+
+def test_undoing_a_hand_mark_keeps_the_question_really_asked() -> None:
+    """#286 review: hand mark, then the question, then undo."""
+    track, _ = tracker()
+    say(track, ROUND[:4])
+    track.mark_asked("s3", "p2", True, 18.0)
+    say(track, [("q5", "S1", "¿Y cómo haces el cierre de caja?")])
+    assert track.asked_times["s3.p2"] == 2
+    assert track.mark_asked("s3", "p2", False)["asked"]["utterance"] == "q5"
+    assert track.asked["s3"]["p2"].by == "rules"
+
+
+def test_an_undo_can_lower_the_level_and_dates_by_stream_time() -> None:
+    now = [100.0]
+    plan = the_plan()
+    track = TopicTracker(plan, topic_states(plan, []), dict(ROLES),
+                         lambda m: None, clock=lambda: now[0])
+    say(track, [("q1", "S1", "Cuéntame qué tipos de pisada conoces.")])
+    assert track.reached()["s2"] == "treated"
+    now[0] = 103.5  # the click comes 3.5 s after the last final
+    track.mark_asked("s2", "p2", True)
+    assert track.asked["s2"]["p2"].at == round(track.stream_time + 3.5, 3)
+    track.mark_asked("s2", "p1", False)
+    track.mark_asked("s2", "p2", False)
+    assert track.reached()["s2"] == "named"  # a correction lowers it
+
+
+def test_a_relabelled_line_moves_its_marks() -> None:
+    """#286 review: live equals replay after a speaker update."""
+    track, _ = tracker()
+    say(track, [("q1", "S2", "¿Qué tipos de pisada conoces?")])
+    assert track.asked["s2"] == {}  # the candidate's line asks nothing
+    update = final("q1", "S1", "", seq=1)
+    track.on_event(update.model_copy(update={"type": "speaker_update"}))
+    assert track.asked["s2"]["p1"].utterance == "q1"
+    back = final("q1", "S2", "", seq=2)
+    track.on_event(back.model_copy(update={"type": "speaker_update"}))
+    assert track.asked["s2"] == {}
+
+
+def test_a_question_matched_ambiguously_does_not_move_the_topic() -> None:
+    track, _ = tracker()
+    say(track, [("q1", "S1", "¿Cobras con tarjeta y efectivo?")])
+    assert track.target is not None and track.target.id == "s3"
+    say(track, [("q2", "S1", "¿Puedes trabajar los sábados?")])
+    assert track.asked["s5"]["p2"].utterance == "q2"
+    assert "p1" not in track.asked["s1"]
 
 
 def test_the_tick_call_marks_asked_only_by_an_interviewers_line() -> None:
@@ -356,7 +465,8 @@ def test_the_stored_report_keeps_every_topic_asked_and_treated() -> None:
     assert cover["s1"].level == "well_treated"
 
 
-def test_a_rejudge_keeps_the_marks_made_by_hand() -> None:
+def test_a_rejudge_keeps_every_earlier_mark_and_level() -> None:
+    """#286 review: never below what the page and the report showed."""
     store = Store()
     judge(store, FakeReasoner(), attribute=False)
     kept = json.loads(json.dumps(stored(store)))
@@ -365,13 +475,33 @@ def test_a_rejudge_keeps_the_marks_made_by_hand() -> None:
         if topic["id"] == "s5":
             topic["points"][0]["asked"] = {"by": "hand", "at": 61.5,
                                            "utterance": None, "quote": ""}
+        if topic["id"] == "s4":
+            topic["points"][1]["asked"] = {
+                "by": "live_model", "at": 30.0, "utterance": "q3",
+                "quote": "¿Y con la caja…?"}
+        if topic["id"] == "s6":
+            topic["level"] = "named"
     store.save_result("set-running", kept)
-    assert hand_marks(kept) == {"s5": {"p1": PointAsked(by="hand",
-                                                        at=61.5)}}
+    assert earlier_coverage(kept)["s5"].points[0].asked == PointAsked(
+        by="hand", at=61.5)
     judge(store, FakeReasoner(), attribute=False)
     again = {c["id"]: c for c in stored(store)["coverage"]}
     assert again["s5"]["points"][0]["asked"]["by"] == "hand"
+    assert again["s4"]["points"][1]["asked"]["by"] == "live_model"
     assert again["s5"]["level"] == "treated"
+    assert again["s6"]["level"] == "named"  # the level reached stays
+
+
+def test_without_a_report_the_hand_off_coverage_is_carried() -> None:
+    store = Store()
+    plan = the_plan()
+    store.save(plan)
+    topics = replayed_tracker(transcript(ROUND), plan)
+    earlier = {"s6": TopicCoverage(id="s6", level="named")}
+    LiveJudge(plan, wiring(store, FakeReasoner()), SESSION, lambda m: None,
+              attribute=False, earlier=earlier).judge(topics)
+    again = {c["id"]: c for c in stored(store)["coverage"]}
+    assert again["s6"]["level"] == "named"
 
 
 def test_the_hand_off_coverage_has_no_words() -> None:

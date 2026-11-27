@@ -207,7 +207,12 @@ class ScriptedAssist:
         answers = {x for x in [t.covered_by, *(p.covered_by
                                                for p in t.points)]
                    if x and x in self.said}
+        last = max((self.lines[x][1] for x in answers if x in self.lines),
+                   default=-1.0)
         return TopicFacts(
+            answered={p.id for p, c in zip(t.points, points)
+                      if c.asked is not None and c.asked.at is not None
+                      and last > c.asked.at},
             named=any(x in self.said for x in t.sentences()),
             asked=(t.asked_by in self.said if t.asked_by
                    else t.covered_by in self.said),

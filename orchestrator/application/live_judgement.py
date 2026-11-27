@@ -38,8 +38,9 @@ plan, its level and, per concept, whether its question was asked
 treated it (``coverage``, :func:`~orchestrator.domain.
 interview_coverage.settled`): the session's marks (rules, the tick
 call, by hand), the model's after-session reading for what the session
-missed, and marks made by hand kept from an earlier report of the same
-round (a rebuild or ``rejudge`` replays only the words). Every topic is
+missed, and every mark, every undone mark and the level reached kept from an
+earlier report of the same round, or from its hand-off (a rebuild or
+``rejudge`` replays only the words). Every topic is
 there, also one never answered, so «preguntado, sin respuesta» is told
 apart from «no preguntado». The figure of the offer board does not
 use it.
@@ -47,7 +48,7 @@ use it.
 
 import logging
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple
 
 from orchestrator.application.interview import (
     InterviewWiring,
@@ -66,7 +67,6 @@ from orchestrator.domain.interview import (
     CheckItem,
     InterviewPlan,
     Judgement,
-    PointAsked,
     Sheet,
     SheetSlot,
     TopicCoverage,
@@ -86,7 +86,10 @@ from orchestrator.domain.interview_attribution import (
     round_payload,
     used_ids,
 )
-from orchestrator.domain.interview_coverage import hand_marks, settled
+from orchestrator.domain.interview_coverage import (
+    earlier_coverage,
+    settled,
+)
 from orchestrator.domain.interview_judgement import MAX_CHECKS, judge_slots
 from orchestrator.domain.next_round import topic_states
 from orchestrator.domain.interview_points import quote
@@ -143,6 +146,8 @@ class LiveJudge:
         now: Wall-clock time.
         attribute: Whether the model attributes the round's answers
             before judging (#268); ``False`` keeps the rules' attribution.
+        earlier: The round's coverage kept elsewhere (the hand-off's),
+            used when no report of the round is stored (#286).
     """
 
     def __init__(
@@ -157,8 +162,10 @@ class LiveJudge:
         candidate_id: Optional[str] = None,
         now: Callable[[], datetime] = datetime.now,
         attribute: bool = True,
+        earlier: Optional[Mapping[str, TopicCoverage]] = None,
     ):
         """Nothing judged yet."""
+        self.earlier = earlier
         self.plan = plan
         self.wiring = wiring
         self.session_id = session_id
@@ -178,7 +185,7 @@ class LiveJudge:
         """
         lines = topics.round_lines()
         found, why = None, None
-        hand = self._hand_marks()
+        earlier = self._earlier()
         if self.attribute and any(line.role == CANDIDATE for line in lines):
             self.publish({"type": "accuracy", "state": "reporting"})
             found, why = self.attribute_round(lines)
@@ -191,23 +198,30 @@ class LiveJudge:
                     texts)
                 coverage = settled(
                     self.plan.slots, topics.facts(), topics.reached(),
-                    slots, texts, asked_marks(found, lines), hand)
+                    slots, texts, asked_marks(found, lines), earlier)
                 return self.judge_slots(slots, texts, "after_session",
                                         announced=True, coverage=coverage)
         slots, texts = topics.sheet_slots()
         coverage = settled(self.plan.slots, topics.facts(),
-                           topics.reached(), slots, texts, {}, hand)
+                           topics.reached(), slots, texts, {}, earlier)
         return self.judge_slots(slots, texts, "rules", why,
                                 announced=why is not None,
                                 coverage=coverage)
 
-    def _hand_marks(self) -> Dict[str, Dict[str, PointAsked]]:
-        """Marks made by hand in the round's stored report, if any (#286)."""
+    def _earlier(self) -> Dict[str, TopicCoverage]:
+        """The coverage kept earlier for this round (#286 review).
+
+        The stored report of the same session when there is one (a
+        rejudge or a rebuild replays only the words: marks by hand or by
+        the live model, undone marks and the level reached would be
+        lost), else the coverage given (the hand-off's), else nothing.
+        """
         try:
-            return hand_marks(self.wiring.store.result(
+            found = earlier_coverage(self.wiring.store.result(
                 self.plan.id, self.session_id))
         except Exception:  # noqa: BLE001 - none stored, or unreadable
-            return {}
+            found = {}
+        return found or dict(self.earlier or {})
 
     def attribute_round(
         self, lines: List[RoundLine],

@@ -494,6 +494,13 @@
             }
           ],
           "default": null
+        },
+        "undone": {
+          "items": {
+            "$ref": "#/$defs/PointAsked"
+          },
+          "title": "Undone",
+          "type": "array"
         }
       },
       "required": [
@@ -829,7 +836,7 @@
       ],
       "default": null,
       "title": "Coverage",
-      "description": "How far each topic of the plan was covered in a live round (#286): its level (none, named, treated, well_treated; it only grows) and counts, and per concept whether its question was asked (by rules, live_model, hand or after_session; when, in seconds from the start; the interviewer's line and words) and whether the candidate treated it. Null: an AI interviewer's sheet, or a live report written before it."
+      "description": "How far each topic of the plan was covered in a live round (#286): its level (none, named, treated, well_treated; it only grows) and counts, and per concept whether its question was asked (by rules, live_model, hand or after_session; when, in seconds from the start; the interviewer's line and words) and whether the candidate treated it; marks the interviewer undid by hand (`undone`). Null: an AI interviewer's sheet, or a live report written before it."
     },
     "finished_at": {
       "anyOf": [
