@@ -46,6 +46,15 @@ class Instant:
         """Every sentence says it."""
         return {"items": [{"id": "aviso", "score": 0.9, "said": True}]}
 
+    def check_list(self, listed: Dict[str, Any], text: str
+                   ) -> Dict[str, Any]:
+        """Every sentence says it (a sent list, #294)."""
+        return self.check("", text)
+
+    def review(self, listed: Dict[str, Any]) -> Dict[str, Any]:
+        """Nothing is close."""
+        return {"close": []}
+
 
 def first_final() -> LiveEvent:
     """The employee's first sentence of the session."""

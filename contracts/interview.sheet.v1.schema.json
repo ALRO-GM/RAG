@@ -572,6 +572,75 @@
       ],
       "title": "TopicCoverage",
       "type": "object"
+    },
+    "ListUsed": {
+      "additionalProperties": false,
+      "description": "The list of «Lo que hay que decir» a live round used (#294).",
+      "properties": {
+        "id": {
+          "maxLength": 72,
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "general": {
+          "default": false,
+          "title": "General",
+          "type": "boolean"
+        },
+        "version": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Version",
+          "type": "integer"
+        },
+        "mode": {
+          "anyOf": [
+            {
+              "enum": [
+                "add",
+                "replace"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mode"
+        },
+        "domain": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Domain"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "ListUsed",
+      "type": "object"
     }
   },
   "additionalProperties": false,
@@ -837,6 +906,19 @@
       "default": null,
       "title": "Coverage",
       "description": "How far each topic of the plan was covered in a live round (#286): its level (none, named, treated, well_treated; it only grows) and counts, and per concept whether its question was asked (by rules, live_model, hand or after_session; when, in seconds from the start; the interviewer's line and words) and whether the candidate treated it; marks the interviewer undid by hand (`undone`). Null: an AI interviewer's sheet, or a live report written before it."
+    },
+    "mandatory_list": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ListUsed"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Mandatory List",
+      "description": "The list of «Lo que hay que decir» of a live round and its version (#294; a later edit of the list never changes it). Null: an AI interviewer's sheet, or one written before it."
     },
     "finished_at": {
       "anyOf": [

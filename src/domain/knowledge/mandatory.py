@@ -119,6 +119,59 @@ def item_scores(
     ]
 
 
+class CloseExample(BaseModel):
+    """An example of one item that comes close to an example of another.
+
+    A sentence like ``example`` could count as saying ``other`` instead
+    of ``item`` (a sentence says at most one item: the closest), so the
+    owner is warned; it is a heuristic, not a measurement (#294).
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    item: str
+    example: str
+    other: str
+    other_example: str
+    score: float
+
+
+def close_examples(
+    listed: MandatoryList, similarities: Sequence[Sequence[float]],
+    threshold: Optional[float] = None,
+) -> List[CloseExample]:
+    """Return the examples that reach an example of another item.
+
+    ``similarities`` is the square matrix of cosines between the
+    examples, in the order of :meth:`MandatoryList.examples`. An
+    example is close to another item when its best cosine to that
+    item's examples reaches ``threshold`` (default: the list's); only
+    its closest other item is named, once per example.
+    """
+    owners = [item for item in listed.items for _ in item.must_say]
+    examples = listed.examples()
+    if len(similarities) != len(examples) or any(
+        len(row) != len(examples) for row in similarities
+    ):
+        raise ValueError("one row and column per example is needed")
+    limit = listed.threshold if threshold is None else threshold
+    found: List[CloseExample] = []
+    for i, row in enumerate(similarities):
+        best: Optional[int] = None
+        for j, score in enumerate(row):
+            if owners[j].id == owners[i].id:
+                continue
+            if best is None or score > row[best]:
+                best = j
+        if best is not None and row[best] >= limit:
+            found.append(CloseExample(
+                item=owners[i].id, example=examples[i],
+                other=owners[best].id, other_example=examples[best],
+                score=round(float(row[best]), 4),
+            ))
+    return found
+
+
 def check_item_id(value: str) -> bool:
     """Tell whether ``value`` is a valid item id."""
     return isinstance(value, str) and bool(

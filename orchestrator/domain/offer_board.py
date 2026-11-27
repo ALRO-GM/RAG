@@ -173,6 +173,8 @@ class InterviewView:
     less_reliable: bool
     attribution: Optional[str]
     owned: bool = False
+    mandatory_list: Optional[Dict[str, Any]] = None
+    """The list of «Lo que hay que decir» of a live round (#294)."""
 
     @property
     def covers_required(self) -> bool:
@@ -425,7 +427,17 @@ def interview_view(
         to_check=len(checks) if isinstance(checks, list) else 0,
         less_reliable=kind == "live" and attribution != "after_session",
         attribution=attribution, owned=owned,
+        mandatory_list=_list_used(sheet.get("mandatory_list")),
     )
+
+
+def _list_used(raw: object) -> Optional[Dict[str, Any]]:
+    """The list a stored round used: id, name, version, general (#294)."""
+    if not isinstance(raw, dict) or not isinstance(raw.get("id"), str):
+        return None
+    return {"id": raw["id"], "name": _text(raw.get("name")),
+            "version": _int(raw.get("version")),
+            "general": raw.get("general") is True}
 
 
 def _when(view: InterviewView) -> float:

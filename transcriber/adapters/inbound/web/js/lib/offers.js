@@ -127,6 +127,7 @@ export function boardRows(board) {
       missing: latest.missing_required ?? [], unasked: latest.unasked_required ?? [], notAsked: latest.not_asked ?? [],
       accuracy: latest.accuracy ?? {}, toCheck: latest.to_check ?? 0,
       others: person.others ?? [],
+      mandatoryList: latest.mandatory_list ?? null, // #294: the list of «Lo que hay que decir» of a live round
     };
   });
 }

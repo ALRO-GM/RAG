@@ -24,6 +24,7 @@ import { voicebotView } from "./views/voicebot.js";
 import { callReportView } from "./views/call-report.js";
 import { interviewReportView } from "./views/interview-report.js";
 import { offersView, offerView, personFileView } from "./views/offers.js";
+import { mandatoryView } from "./views/mandatory.js";
 import { hideSkeleton, installShell, markCurrent, setCrumbs, showSkeleton } from "./shell.js";
 import { crumbsFor, crumbsWhileCurrent } from "./lib/shell.js";
 import { installSweeps } from "./lib/live-store.js";
@@ -95,6 +96,7 @@ const ROUTES = [
   [/^#\/call-report\/([^/]+)$/, callReportView],
   [/^#\/interview-report\/([^/]+)\/([^/]+)$/, interviewReportView],
   [/^#\/settings$/, settingsView],
+  [/^#\/mandatory(?:\/([^/?]+))?$/, mandatoryView],
   [/^#\/lab(?:\/([^/]+))?(?:\/([^/]+))?(?:\/([^/]+))?$/, labView],
 ];
 

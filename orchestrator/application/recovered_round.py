@@ -108,6 +108,8 @@ class RecoveredRound:
             publish=publish,
             earlier=earlier_coverage(live.handoff or {})
             if live is not None else None,
+            # #294: the same list (and version) the session used.
+            chosen=getattr(live, "mandatory_list", None),
         )
         if live is not None:
             if rebuilt.accuracy is not None:

@@ -17,11 +17,20 @@ warm-up. Since #286 :meth:`MandatoryTracker.start` also sends one
 check whose answer is ignored, on its own thread and only in a live
 session, so the RAG's first real check of the session does not pay for
 loading its model and the examples' vectors and nothing waits for it.
+
+Since #294 a session may use an owner's list (``chosen``, a
+:class:`~orchestrator.application.mandatory_lists.SessionList` read when
+the session starts): the general list is still read from the domain
+(its threshold and reminder, and its items when the owner's list adds
+to it), the items the session checks are the combination, every check
+sends that list with the sentence, and the checklist records which list
+and version it was.
 """
 
 import threading
 from typing import Callable, Dict, Optional, Set
 
+from orchestrator.application.mandatory_lists import SessionList
 from orchestrator.application.ports import (
     Document,
     Executor,
@@ -55,6 +64,8 @@ class MandatoryTracker:
         executor: Runs the checks off the event loop.
         warm: Send the warm-up check at the start (a live session only:
             a replay or a rebuild needs none).
+        chosen: The list the session uses (#294; ``None``: the domain's,
+            not recorded).
     """
 
     def __init__(
@@ -65,9 +76,12 @@ class MandatoryTracker:
         publish: Callable[[Document], object],
         executor: Executor,
         warm: bool = False,
+        chosen: Optional[SessionList] = None,
     ):
         """Keep the ports; the list is read by :meth:`start`."""
         self.warm = warm
+        self.chosen = chosen
+        self._sent: Optional[Document] = None
         self.port = port
         self.domain = domain
         self.roles = roles
@@ -92,9 +106,15 @@ class MandatoryTracker:
         except MandatoryUnavailable as exc:
             self._warn(str(exc))
             return
+        ref = None
+        if self.chosen is not None:
+            ref = self.chosen.ref(listed)
+            if self.chosen.owned is not None:
+                listed = self._sent = self.chosen.effective(listed)
         with self._lock:
             self.checklist = Checklist.from_list(listed)
             self.checklist.domain = self.domain
+            self.checklist.list = ref
         if self.active:
             self._publish()
             # #286: warm the RAG's check (its model and the examples'
@@ -109,7 +129,7 @@ class MandatoryTracker:
     def _warm(self) -> None:
         """One check whose answer is ignored (a failure says nothing)."""
         try:
-            self.port.check(self.domain, WARM_TEXT)
+            self._ask(WARM_TEXT)
         except MandatoryUnavailable:
             pass
 
@@ -134,7 +154,7 @@ class MandatoryTracker:
     def _check(self, utterance: str, text: str, at: float) -> None:
         """Ask the RAG which item ``text`` says and mark it."""
         try:
-            found = self.port.check(self.domain, text)
+            found = self._ask(text)
         except MandatoryUnavailable as exc:
             self._warn(str(exc))
             return
@@ -147,6 +167,12 @@ class MandatoryTracker:
                 )
         if changed:
             self._publish()
+
+    def _ask(self, text: str) -> Document:
+        """Check ``text`` on the domain's list, or on the session's."""
+        if self._sent is not None:
+            return self.port.check_list(self._sent, text)
+        return self.port.check(self.domain, text)
 
     def tick(self, item_id: str, confirm: bool, at: float) -> Document:
         """Tick an item by hand; ``confirm`` must be true."""

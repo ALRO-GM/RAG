@@ -18,7 +18,9 @@ demo's ``report``, ``voicebot``, ``voices`` and one rendered line clip,
 interviewer's ``interview/plans``, one plan, its ``results`` and its
 ``board`` (the offer page's table, #271); the
 candidates of a role, one candidate, their answers to the core questions
-and the candidate of a session, #235), and
+and the candidate of a session, #235); the owner's lists of «Lo que hay
+que decir» (``mandatory/lists``, one list, ``mandatory/review`` and the
+list of a job offer, ``interview/plans/<id>/mandatory``, #294), and
 session, speaker and item ids are checked; the stream is passed through
 as it comes (Server-Sent Events, with the voice bot's audio inside). It
 is an inbound adapter that talks HTTP itself on purpose: it adds no
@@ -57,7 +59,10 @@ ALLOWED = re.compile(
     rf"|interview/plans/{_ID}/candidates/{_ID}"
     rf"/(?:answers|proposals)/[a-z][a-z0-9_]{{1,40}}"
     rf"|interview/plans/{_ID}/candidates/{_ID}/confirm"
-    rf"|interview/candidates/by-session/{_ID})$"
+    rf"|interview/candidates/by-session/{_ID}"
+    rf"|interview/plans/{_ID}/mandatory"
+    rf"|mandatory/lists|mandatory/review"
+    rf"|mandatory/lists/[a-z0-9][a-z0-9.-]{{0,63}})$"
 )
 MAX_BODY = 16 * 1024
 PLAN_BODY = 96 * 1024
@@ -353,6 +358,46 @@ def add_live_assist_proxy(
         return await forward(f"interview/candidates/by-session/{session_id}",
                              request)
 
+    @api.get("/assist/mandatory/lists")
+    async def assist_lists(request: Request) -> Response:
+        """The lists of «Lo que hay que decir» (#294)."""
+        return await forward("mandatory/lists", request)
+
+    @api.post("/assist/mandatory/lists")
+    async def assist_new_list(request: Request) -> Response:
+        """Make a list, or a copy of one."""
+        return await forward("mandatory/lists", request)
+
+    @api.post("/assist/mandatory/review")
+    async def assist_review_list(request: Request) -> Response:
+        """The warnings of a list being edited."""
+        return await forward("mandatory/review", request)
+
+    @api.get("/assist/mandatory/lists/{list_id}")
+    async def assist_list(list_id: str, request: Request) -> Response:
+        """One list."""
+        return await forward(f"mandatory/lists/{list_id}", request)
+
+    @api.put("/assist/mandatory/lists/{list_id}")
+    async def assist_edit_list(list_id: str, request: Request) -> Response:
+        """Save an edit of a list (a new version)."""
+        return await forward(f"mandatory/lists/{list_id}", request)
+
+    @api.delete("/assist/mandatory/lists/{list_id}")
+    async def assist_delete_list(list_id: str, request: Request) -> Response:
+        """Delete an owner's list."""
+        return await forward(f"mandatory/lists/{list_id}", request)
+
+    @api.get("/assist/interview/plans/{plan_id}/mandatory")
+    async def assist_offer_list(plan_id: str, request: Request) -> Response:
+        """The list a job offer uses."""
+        return await forward(f"interview/plans/{plan_id}/mandatory", request)
+
+    @api.put("/assist/interview/plans/{plan_id}/mandatory")
+    async def assist_assign_list(plan_id: str, request: Request) -> Response:
+        """Make a job offer use a list."""
+        return await forward(f"interview/plans/{plan_id}/mandatory", request)
+
     async def forward(path: str, request: Request) -> Response:
         """Forward one call of the live page to the orchestrator."""
         if not ALLOWED.match(path):
@@ -371,7 +416,8 @@ def add_live_assist_proxy(
         params = {"after": after} if after and after.isdigit() else None
         body = (await request.body()
                 if request.method in ("POST", "PUT") else b"")
-        limit = PLAN_BODY if path.startswith("interview/") else MAX_BODY
+        limit = PLAN_BODY if path.startswith(("interview/", "mandatory/")) \
+            else MAX_BODY
         if len(body) > limit:
             return JSONResponse(
                 {"code": "too_large", "message": "body too large"},

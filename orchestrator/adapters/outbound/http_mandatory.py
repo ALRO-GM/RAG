@@ -2,7 +2,10 @@
 
 ``GET /knowledge/domains/{domain}/mandatory`` gives a domain's list and
 ``POST /knowledge/mandatory`` ``{"domain", "text"}`` tells which item a
-sentence says (the RAG embeds it with its knowledge model).
+sentence says (the RAG embeds it with its knowledge model). With
+``{"list", "text"}`` the list comes with the sentence, and ``POST
+/knowledge/mandatory/review`` ``{"list"}`` names the examples close to
+another item's (#294).
 """
 
 from typing import Callable, Optional
@@ -47,6 +50,20 @@ class HttpMandatory:
         """Return each item's similarity to ``text`` and whether it is said."""
         return self._answer(lambda: self.client.post(
             f"{self.base}/mandatory", json={"domain": domain, "text": text},
+            headers=self.headers, timeout=self.timeout,
+        ))
+
+    def check_list(self, listed: Document, text: str) -> Document:
+        """Return each item's similarity to ``text``, for a sent list."""
+        return self._answer(lambda: self.client.post(
+            f"{self.base}/mandatory", json={"list": listed, "text": text},
+            headers=self.headers, timeout=self.timeout,
+        ))
+
+    def review(self, listed: Document) -> Document:
+        """Return the examples of ``listed`` close to another item's."""
+        return self._answer(lambda: self.client.post(
+            f"{self.base}/mandatory/review", json={"list": listed},
             headers=self.headers, timeout=self.timeout,
         ))
 

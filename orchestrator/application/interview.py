@@ -398,7 +398,8 @@ class InterviewPlanner:
                 "others": [
                     {k: getattr(v, k) for k in (
                         "session_id", "kind", "finished_at", "figure",
-                        "figure_basis", "plan_changed", "less_reliable")}
+                        "figure_basis", "plan_changed", "less_reliable",
+                        "mandatory_list")}
                     for v in others
                 ],
             }))

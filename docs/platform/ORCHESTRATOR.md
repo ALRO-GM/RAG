@@ -29,7 +29,7 @@ python -m orchestrator serve [--host 127.0.0.1] [--port 8772] [--token-file F] \
 | `GET /health` | | `{"status": "ok"}` |
 | `GET /products` | | live products: `product`, `banner`, `signals` (support only), `script_phases` (interview), `roles`, `suggest_about`, `channels`, `live` (a transcriber is linked) |
 | `GET /transcripts` | | `*.transcript.v1.json` of `--transcripts` (default `data/transcripts`, `examples/platform`) |
-| `POST /sessions` | `{"product", "audio": "stereo"\|"mic", "session_id"?, "employee"?: {"id", "name"}}` | 201 session; starts `POST /api/live/sessions` on the transcriber with the product's speakers and roles, then follows `WS /api/live/{id}/events` |
+| `POST /sessions` | `{"product", "audio": "stereo"\|"mic", "session_id"?, "employee"?: {"id", "name"}, "mandatory_list"?}` (`mandatory_list`: the list of «Lo que hay que decir» of a support call, #294) | 201 session; starts `POST /api/live/sessions` on the transcriber with the product's speakers and roles, then follows `WS /api/live/{id}/events` |
 | `POST /sessions/{id}/replay` | `{"product", "transcript", "speed"?, "employee"?}` | 201 session; replays a transcript (speed 1 real time, `null` as fast as the services answer) |
 | `POST /sessions/{id}/mode` | `{"mode": "pincelada"\|"guiado"}` | the next call uses it (LV-16) |
 | `POST /sessions/{id}/speakers/{speaker}` | `{"name"}` | names a speaker (live: also on the transcriber, for the `transcript.v1`) |
@@ -38,6 +38,7 @@ python -m orchestrator serve [--host 127.0.0.1] [--port 8772] [--token-file F] \
 | `GET /sessions`, `GET /sessions/{id}` | | state, counts of calls by status, skipped triggers, rejected events |
 | `POST /sessions/{id}/barge-in` | | voice bot only: the user spoke over the bot; `{"stopped": bool}` |
 | `GET/POST /interview/plans`, `GET/PUT /interview/plans/{id}`, `GET /interview/plans/{id}/results` | see `docs/live/VOICEBOT_INTERVIEWER.md` | the AI interviewer's plans and the candidates of a plan (#208) |
+| `GET/POST /mandatory/lists`, `GET/PUT/DELETE /mandatory/lists/{id}`, `POST /mandatory/review`, `GET/PUT /interview/plans/{id}/mandatory` | see `docs/live/MANDATORY_ITEMS.md` | the owner's lists of «Lo que hay que decir» (`--mandatory-dir`, default `data/mandatory`) and the list of a job offer (#294) |
 | `GET /sessions/{id}/suggestions/stream` | `?after=n` or `Last-Event-ID` | Server-Sent Events (below) |
 
 Errors are `{"code", "message"}`: `not_found` 404, `busy`/`wrong_state` 409 (one session at a time), `invalid_request` 422, `transcriber` 502, `unavailable` 503 (no access code, so live sessions are off; replays still work).

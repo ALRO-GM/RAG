@@ -41,7 +41,7 @@ import json
 import os
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Sequence
 
@@ -88,6 +88,9 @@ from orchestrator.adapters.inbound.demo_voices_cli import (
     run_demo_voices,
 )
 from orchestrator.adapters.outbound.fs_mandatory import FileMandatory
+from orchestrator.adapters.outbound.fs_mandatory_lists import (
+    JsonMandatoryLists,
+)
 from orchestrator.adapters.outbound.jsonl_sink import (
     JsonHandoff,
     JsonlSink,
@@ -142,7 +145,8 @@ from orchestrator.application.ports import (
     TurnSink,
     SuggestionSink,
 )
-from orchestrator.application.sessions import LiveSessions
+from orchestrator.application.mandatory_lists import MandatoryLists
+from orchestrator.application.sessions import LiveSessions, list_kind
 from orchestrator.application.voice import DEFAULT_BUDGET_MS
 from orchestrator.application.natural_voice import NaturalWiring
 from orchestrator.domain.voices import EngineVoice
@@ -271,6 +275,10 @@ def add_serve_parser(
     serve.add_argument("--interview-dir", type=Path,
                        default=ROOT / "data" / "interview",
                        help="interview plans and sheets (#208)")
+    serve.add_argument("--mandatory-dir", type=Path,
+                       default=ROOT / "data" / "mandatory",
+                       help="the owner's lists of «Lo que hay que decir» "
+                            "(#294)")
     serve.add_argument("--demo-voices-dir", type=Path,
                        default=DEMO_VOICES_DIR,
                        help="the scripted examples' rendered voices (#254)")
@@ -495,6 +503,7 @@ def build_sessions(args: argparse.Namespace) -> LiveSessions:
     )
     products = load_products(args.config_dir)
     gate = build_gate(args)
+    mandatory = build_mandatory(args)
     sessions = LiveSessions(
         products, build_knowledge(args), build_reasoner(args),
         DirTranscripts(args.transcripts or list(TRANSCRIPT_DIRS)),
@@ -503,7 +512,7 @@ def build_sessions(args: argparse.Namespace) -> LiveSessions:
         turn_log=turns,
         settings=HttpSettings(args.knowledge_url, args.token)
         if args.knowledge == "http" else None,
-        mandatory=build_mandatory(args), handoff=handoff,
+        mandatory=mandatory, handoff=handoff,
         profiles=DirVoiceProfiles(args.voiceprints_dir),
         cloner=build_cloner(args), clone_budget_ms=args.clone_budget_ms,
         natural=build_natural(args, gate), clone_gate=gate,
@@ -512,6 +521,7 @@ def build_sessions(args: argparse.Namespace) -> LiveSessions:
         avoid=HttpAvoid(args.knowledge_url, args.token)
         if args.knowledge == "http" else None,
         demos=build_demo_voices(args),
+        lists=build_lists(args, products, mandatory),
     )
     sessions_ref.append(sessions)
     return sessions
@@ -591,6 +601,38 @@ def retention_days(products: Dict[str, ProductConfig]) -> Optional[int]:
         and c.privacy.store_text_days is not None
     ]
     return min(days) if days else None
+
+
+def build_lists(
+    args: argparse.Namespace, products: Dict[str, ProductConfig],
+    mandatory: MandatoryPort,
+) -> MandatoryLists:
+    """The owner's lists of «Lo que hay que decir» (#294).
+
+    The general list of each kind is the knowledge domain of the first
+    live product of that kind.
+    """
+    domains: Dict[str, str] = {}
+    for name in sorted(products):
+        config = products[name]
+        kind = list_kind(config) if config.tts is None else None
+        if kind and config.knowledge is not None and \
+                config.knowledge.domains:
+            domains.setdefault(kind, config.knowledge.domains[0])
+    folder: Path = getattr(args, "mandatory_dir",
+                           ROOT / "data" / "mandatory")
+    plans = JsonPlanStore(getattr(args, "interview_dir",
+                                  ROOT / "data" / "interview"))
+
+    def plan_exists(plan_id: str) -> bool:
+        try:
+            plans.load(plan_id)
+        except KeyError:
+            return False
+        return True
+
+    return MandatoryLists(JsonMandatoryLists(folder), mandatory, domains,
+                          lambda: datetime.now(timezone.utc), plan_exists)
 
 
 def build_mandatory(args: argparse.Namespace) -> MandatoryPort:
