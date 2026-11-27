@@ -179,3 +179,25 @@ Haiku calls: 40 (LV-12) + 60 (#183) + 72 (LV-15) = 172, through the owner's subs
 no paid API. Not done: LV-12 on a real microphone and a real network (the
 audio and SSE are on loopback), several repetitions, the mono diarization,
 and a CALLHOME truth text.
+
+## The tick loop with the coverage of #286 (orchestrator side, 2026-11-27)
+
+What #286 adds to each final and each tick call, with an instant fake
+model (so the model's own latency is not in it), CPU, 4,800 finals of an
+invented round (200 replays of 24 lines), 2,400 tick calls; before =
+main `ab0c455`, after = the #286 branch, four runs each
+(`experiments/live/lv286/tick_cost.py <checkout>` with that checkout on
+`PYTHONPATH`; the runs agree within 7 µs at p50):
+
+| | before p50 / p90 | after p50 / p90 |
+|---|---|---|
+| `TopicTracker.on_event` per final | 85–87 / 91–93 µs | 211–218 / 258–266 µs |
+| one tick call's handling around the model | 9 / 53–54 µs | 9–10 / 194–201 µs |
+
+Both stay under a millisecond against 0.6–0.9 s from speech end to final
+and seconds of model. The tick call (`interview.ticks@2`) runs on its own
+thread on the cold backend and yields, beside the suggestions; its
+prompt grows from 543 to 841 system characters and its output cap from
+160 to 260 tokens. Its real latency with the model was not measured
+(it needs the running services).
+

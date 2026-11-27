@@ -143,6 +143,27 @@ first there), light and dark.
   once all are said; a pending one is ticked by clicking it
   (confirmation, logged as before). Every `remind_seconds` the row is
   highlighted for 3 s with what is missing: no toast any more.
+- **Topics of the role, by coverage** (#286, interviews with a plan and
+  the scripted demo): each chip carries a ring that fills — empty and
+  dashed («sin mencionar»), a third («nombrado»), two thirds
+  («tratado»), full («bien tratado») — and a green that deepens with it;
+  the level's words and «n de m conceptos tratados, k preguntados» are
+  the chip's `title`, a screen-reader text and shown on focus (the chip
+  takes focus), so colour is never the only sign. The level only grows
+  and is the server's (`docs/live/VOICEBOT_INTERVIEWER.md` §6.5); a
+  change is said once in a polite live region («"Bases de datos": ahora
+  tratado»). «{done} de {all} tratados o bien tratados» counts from
+  «tratado». A quiet line under the chips says the level is how much the
+  topic was talked about, not whether the answers are good. Under
+  «Conceptos de cada tema» each concept says «preguntado y respondido»,
+  «preguntado, sin respuesta aún», «respondido sin preguntarlo» or «aún
+  no preguntado» in words (the mark beside it is decoration), and, in a
+  live session, «Ya lo he preguntado» marks it by hand (logged as by
+  hand; «Deshacer» removes only a mark by hand). Above them, while there
+  is one, «Siguiente: Índices (Bases de datos)» with the proposed
+  question replaces «Falta por tratar…». The «Compartir pantalla» mirror
+  copies the same DOM, so a joined device sees the rings and can press
+  «Ya lo he preguntado».
 - **Under disclosures**: «Sugerencias anteriores y de dónde salen»
   (older suggestions, `about` sentences, sources, latency, the lines
   better avoided) and «Opciones» (the LV-16 choices: lines shown,
@@ -189,7 +210,12 @@ start form) plays `examples/demo/entrevista-lucia.demo.json`
 (`POST /sessions/{id}/replay {"demo": id}`). Its suggestions, the
 age question's hint and the topics are prepared in the file and
 published by `orchestrator/application/demo.py`; no knowledge, reasoner
-or model call, so every run is the same. Its hints, suggestion texts,
+or model call, so every run is the same. Since #286 the file names the
+interviewer line that asks each concept (`asked_by`), so the demo shows
+the levels by the live rule (two topics end «bien tratado», three
+«tratado»), concepts asked apart from treated («Pruebas de integración»
+is asked and never answered) and the next concept to ask, ending with
+«Otra vez, si hay tiempo: Pruebas de integración». Its hints, suggestion texts,
 topics and title also come in English (`en`) for a page in English;
 the conversation stays Spanish. A new demo, a live session or a
 recorded replay stops a demo still playing (a demo never stops a real

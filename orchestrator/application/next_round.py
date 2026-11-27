@@ -52,7 +52,10 @@ and :meth:`TopicTracker.facts` give the same facts to the report.
 
 import re
 import threading
-from typing import Callable, Dict, List, Optional, Sequence, Set, Tuple
+from functools import lru_cache
+from typing import (
+    Callable, Dict, FrozenSet, List, Optional, Sequence, Set, Tuple,
+)
 
 from orchestrator.application.ports import Document
 from orchestrator.domain.events import LiveEvent
@@ -110,6 +113,15 @@ def keywords(text: str) -> Set[str]:
             if w not in _STOP}
 
 
+@lru_cache(maxsize=512)
+def _slot_words(label: str, questions: Tuple[str, ...],
+                points: Tuple[str, ...],
+                ) -> Tuple[FrozenSet[str], FrozenSet[str]]:
+    """A slot's label words and all its words (cached: read per final)."""
+    own = frozenset(keywords(label))
+    return own, own | keywords(" ".join([*questions, *points]))
+
+
 def slot_asked(text: str, slots: Sequence[Slot]) -> Optional[Slot]:
     """The slot an interviewer's sentence asks about, if one clearly.
 
@@ -121,9 +133,8 @@ def slot_asked(text: str, slots: Sequence[Slot]) -> Optional[Slot]:
     best: Optional[Slot] = None
     best_n = 0
     for slot in slots:
-        label = keywords(slot.label)
-        topic = label | keywords(" ".join(
-            [*slot.questions, *(p.text for p in slot.points)]))
+        label, topic = _slot_words(slot.label, tuple(slot.questions),
+                                   tuple(p.text for p in slot.points))
         shared = len(heard & topic)
         needed = 1 if len(label) == 1 and heard & label else 2
         if shared >= needed and shared > best_n:
@@ -497,11 +508,13 @@ class TopicTracker:
             self._levels()
             return dict(self.levels)
 
-    def _levels(self) -> Dict[str, TopicCoverage]:
+    def _levels(self, facts: Optional[Dict[str, TopicFacts]] = None,
+                ) -> Dict[str, TopicCoverage]:
         """Each topic's coverage, raising the levels kept (lock held)."""
         found: Dict[str, TopicCoverage] = {}
         for slot in self.plan.slots:
-            got = topic_coverage(slot.id, self._facts(slot),
+            got = topic_coverage(slot.id, facts[slot.id] if facts
+                                 else self._facts(slot),
                                  self.levels.get(slot.id, "none"),
                                  slot.label)
             self.levels[slot.id] = got.level
@@ -518,9 +531,10 @@ class TopicTracker:
         with self._lock:
             return self._proposal()
 
-    def _proposal(self) -> Optional[Proposal]:
+    def _proposal(self, facts: Optional[Dict[str, TopicFacts]] = None,
+                  ) -> Optional[Proposal]:
         """:func:`next_proposal` on the round's facts (lock held)."""
-        facts = {s.id: self._facts(s) for s in self.plan.slots}
+        facts = facts or {s.id: self._facts(s) for s in self.plan.slots}
         return next_proposal(
             [TopicRef.of(t.slot) for t in self.states], facts,
             self.asked_times,
@@ -597,7 +611,8 @@ class TopicTracker:
         """Send the topics with their concepts, levels and what to ask."""
         with self._lock:
             target = self.target.id if self.target else None
-            coverage = self._levels()
+            facts = {s.id: self._facts(s) for s in self.plan.slots}
+            coverage = self._levels(facts)
             topics = [
                 t.to_topic(t.slot.id in self.covered,
                            [p.model_copy() for p in self.points.get(
@@ -606,6 +621,6 @@ class TopicTracker:
                            coverage[t.slot.id], self.asked[t.slot.id])
                 for t in self.states
             ]
-            found = self._proposal()
+            found = self._proposal(facts)
         self.publish({"type": "topics", "topics": topics,
                       "next": found.to_message() if found else None})

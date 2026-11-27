@@ -11,6 +11,11 @@ similarity. A manual tick needs ``confirm`` and is logged. Each change
 is published as ``{"type": "mandatory", "checklist": ...}``. A service
 that does not answer leaves the items pending (they can still be
 ticked); its failure is published once as a ``warning``.
+
+The check starts with the first final sentence: nothing waits for a
+warm-up. Since #286 :meth:`MandatoryTracker.start` also sends one
+check whose answer is ignored, so the RAG's first real check of the
+session does not pay for loading its model and the examples' vectors.
 """
 
 import threading
@@ -28,6 +33,10 @@ from orchestrator.domain.mandatory import (
     Checklist,
     said_items,
 )
+
+
+WARM_TEXT = "Hola."
+"""The sentence of the warm-up check at the start (its answer is ignored)."""
 
 
 class TickRefused(Exception):
@@ -83,6 +92,17 @@ class MandatoryTracker:
             self.checklist.domain = self.domain
         if self.active:
             self._publish()
+            # #286: warm the RAG's check (its model and the examples'
+            # vectors, computed once per process) before the employee's
+            # first sentence, which is usually the one that says an item.
+            self.executor.submit(self._warm)
+
+    def _warm(self) -> None:
+        """One check whose answer is ignored (a failure says nothing)."""
+        try:
+            self.port.check(self.domain, WARM_TEXT)
+        except MandatoryUnavailable:
+            pass
 
     def on_event(self, event: LiveEvent) -> None:
         """Check the employee's final sentences."""

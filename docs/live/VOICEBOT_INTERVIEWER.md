@@ -1094,6 +1094,116 @@ is not legal advice. The figure's values (100, 70, 50, 40, 10, 5, 0 and
 the concept factor) are a design choice, not fitted or validated on
 data.
 
+### 6.5 Coverage of a live interview: asked vs treated, topic levels, what to ask next (#286)
+
+Asked by the owner on 2026-11-27: on «En directo», «Temas del puesto» fill
+up as they are covered, the concepts of each topic say whether their
+question **was asked** apart from whether the candidate **treated** them,
+and the proposals aim at the concepts not asked yet. All of it is kept
+with the round. Rules and wording are coverage only: nothing here says
+how good an answer or a candidate is, and nothing is shown to the
+candidate. Code: `orchestrator/domain/interview_coverage.py` (rules),
+`TopicTracker` (`orchestrator/application/next_round.py`, live),
+`LiveJudge` (`live_judgement.py`, after the session).
+
+**Two facts per concept.**
+
+| Fact | Live (during the session) | After the session |
+|---|---|---|
+| **asked** — the interviewer's question was about it | the word rules: an interviewer line that asks something (a «?»/«¿», or a part starting with a question word or a request such as «cuéntame», «explícame»; speech recognition drops punctuation) and names the concept (the strict rule of #258, or a concept without content words by its whole words), only in one topic (the one the line names, else the topic being asked, else the first in the round's order: plans repeat concepts across topics); the tick call `interview.ticks@2` reading a question in other words (`live_model`, same call and spacing as before, ≥ 30 s apart, only concepts still pending); the interviewer's «Ya lo he preguntado» (`hand`, can be undone; a mark by the rules or the model cannot) | `interview.attribution@2` reads the whole round and adds the concepts the session missed (`after_session`, earliest interviewer line); the session's marks stay as they were; marks by hand of an earlier stored report of the same round are kept by a rebuild or `interview rejudge` |
+| **treated** — the candidate talked about it (or said they do not know it) | as since #258 / #268 | as since #268 |
+
+A concept asked counts as **covered** even when the answer was poor or
+absent. Each asked mark keeps `by` (`rules`, `live_model`, `hand`,
+`after_session`), `at` (seconds from the start), the interviewer's line
+and its first words. **Live vs settled**: the page shows what the rules,
+the tick call and the interviewer said during the session; a paraphrased
+question the tick call did not read (or whose call was skipped) is only
+settled after the session. How well either model detects an asked
+question on real speech **has not been measured** (the #268 figures are
+for `attribution@1` and treated concepts only).
+
+**Topic level** (computed by the server, `topic_level`; it only grows,
+and the report recomputes it with the after-session facts, never below
+what the page showed):
+
+| Level | Rule |
+|---|---|
+| `none` («sin mencionar») | nothing yet |
+| `named` («nombrado») | either speaker mentioned the topic (`slot_asked` on any line), or one of its concepts was asked |
+| `treated` («tratado») | a concept treated or said unknown, or the topic's completion rule met; a topic without concepts also when it was asked and answered |
+| `well_treated` («bien tratado») | every concept covered (asked or treated), at least half treated by the candidate, and at least `WELL_WORDS` = 25 words of answers to it (about ten seconds of speech); a topic without concepts: its completion rule and 25 words |
+
+«{done} de {all} tratados o bien tratados»: a topic counts from
+`treated` up. The thresholds are a design choice, not measured.
+
+**What to ask next** (`next_proposal`, the topics message's `next`):
+the first concept not covered of the topic being asked, then of the next
+topics in the round's order (what earlier rounds left first); a topic
+without concepts and not asked yet is proposed with its first question
+idea. The proposal names the topic and the concept and its question
+(«Sobre bases de datos: ¿qué me puedes contar de índices?», in the page's
+language); the suggestions' goal names the same concept first
+(«siguiente concepto por preguntar: «…»; después: …»), so the suggester's
+existing call aims at it without another call. A concept already asked is
+not proposed again, except once: when nothing else is left, a concept
+asked once whose answer did not treat it (absent, off topic or unclear
+by the live reading) is proposed again («Otra vez, si hay tiempo»)
+while the plan's minutes have not run out; asked twice, never.
+
+**Recorded.**
+
+* Feed (`{"type": "topics"}`): each topic's `coverage` (`level`,
+  `concepts`, `asked`, `treated`, `covered`) and each concept's `asked`
+  (`{by, at}` or `null`); `next`.
+* Stored report (`interview.sheet.v1`, additive): `coverage`, one entry
+  per topic of the plan (also those never answered, so «preguntado, sin
+  respuesta» is told from «no preguntado»): `id`, `label`, `level`,
+  counts, `words`, and per concept `id`, `text`, `status`, `asked`
+  (`by`, `at`, `utterance`, `quote`). `null` on AI sheets and older live
+  reports (they still open: whether a pending concept was asked is then
+  unknown). Decision: **no new contract revision** — the field is
+  optional and additive, as #258/#259/#262/#271 did; `interview.report@2`
+  (the judge) is unchanged; the attribution and tick templates got new
+  revisions (`@2`, the `@1` ones stay registered).
+* Hand-off record: the same coverage without the interviewer's words.
+* End summary (live page): «Temas: n bien tratados, … · Conceptos
+  preguntados: n de m (k marcados a mano)».
+* Report page: «Cobertura de la entrevista», every topic with its level
+  and each concept «preguntado y respondido», «preguntado, sin
+  respuesta», «respondido sin preguntarlo» or «no preguntado», with who
+  marked it and the interviewer's words.
+* Offer board (`interview.board.v1`, additive): per point `asked`
+  (concepts asked) and `coverage` (level), `null` without coverage. **The
+  figure does not change**: it rests on the candidate's answers; a
+  concept asked but unanswered was not treated either way. The table
+  says «se preguntó, sin respuesta» or «no se llegó a preguntar» under a
+  point not treated: the second is the interviewer's gap, not the
+  candidate's.
+
+`POST /sessions/{id}/points/{topic}/{point}` `{"asked": true|false}`
+(the page: `POST /api/assist/sessions/{id}/points/{topic}/{point}`)
+marks by hand or undoes a mark by hand; 404 for an unknown concept, 409
+once the session ended.
+
+**Support sessions** have no plan, topics or concepts: none of this
+applies to them and nothing of them changed. (The order of «Lo que hay
+que decir» on the page is #287.)
+
+**Cost** (measured 2026-11-27 with an instant fake model,
+`TopicTracker.on_event` per final over 4,800 finals of an invented round,
+CPU, before = main `ab0c455`, `experiments/live/lv286/tick_cost.py`):
+p50 85–87 → 211–218 µs, p90 91–93 → 258–266 µs; the handling of one tick call
+around the model (request and reply) p50 9 → 9–10 µs, p90 54 → 194–201
+µs (`docs/live/LIVE_MEASURES.md`). Both stay under a millisecond, against seconds of
+recognition and model. The tick call's prompt grows from 543 to 841
+system characters and its output cap from 160 to 260 tokens; the
+attribution's from 1,679 to 1,991 characters and 4,000 to 4,600 tokens.
+The real model's latency with `ticks@2` / `attribution@2` was **not
+measured** (it needs the running services); the tick call stays off the
+suggestions' path (cold backend, yields), so the live transcript and
+suggestions do not wait for it.
+
 ## 7. Settings («Ajustes», group «Entrevistador de IA»)
 
 | Step | Options (first is the default) |
@@ -1234,10 +1344,10 @@ model):
 |---|---|---|---|
 | `interview.planner@2` (plan from an offer) | 120 s | cold, min(120, 180) s | 150 s (`PLANNER_TIMEOUT_S`) |
 | `interview.report@2` (AI interviewer's report; each live-judgement batch; `interview rejudge`) | 90 s | cold, min(90, 180) s | 120 s (`REPORT_TIMEOUT_S`, was 100 s) |
-| `interview.attribution@1` (each live round's attribution, #268; `interview rejudge`) | 90 s | cold, min(90, 180) s | 120 s (`REPORT_TIMEOUT_S`) |
+| `interview.attribution@2` (each live round's attribution, #268; since #286 also the concepts asked; `interview rejudge`) | 90 s | cold, min(90, 180) s | 120 s (`REPORT_TIMEOUT_S`) |
 | `interview.slots@2` (slot filler) | 6 s | warm, min(6, 10) s | 120 s (same client) |
 | `interviewer@2` (voice bot) | 4 s | warm, min(4, 10) s | 10 s (default) |
-| `interview.ticks@1` (live concept ticks, #268; yields: only a free slow slot, at most 1) | 20 s | cold, min(20, 180) s | 120 s (`REPORT_TIMEOUT_S`) |
+| `interview.ticks@2` (live concept ticks, #268; since #286 also the concepts asked; yields: only a free slow slot, at most 1) | 20 s | cold, min(20, 180) s | 120 s (`REPORT_TIMEOUT_S`) |
 | `suggester.interview@2` / `.support@2`, `conversational.voicebot@2` | 1.8–2.8 s | warm, ≤ 10 s | 10 s |
 
 The client waits the deadline plus 30 s (`CLIENT_MARGIN_S`) for a slow

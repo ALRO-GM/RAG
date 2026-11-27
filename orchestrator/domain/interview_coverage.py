@@ -175,7 +175,7 @@ def topic_coverage(slot_id: str, facts: TopicFacts,
         covered=sum(1 for p in facts.points
                     if point_covered(p.status, p.asked)),
         words=facts.words,
-        points=[p.model_copy(deep=True) for p in facts.points],
+        points=list(facts.points),
     )
 
 

@@ -48,6 +48,30 @@ check is a word-count cosine with its own threshold (0.5, not measured;
 that does not answer leaves the items pending (they can still be ticked)
 and the page says so once.
 
+## From the first words (#286)
+
+The check starts with the employee's **first** final sentence: the
+tracker reads the list (`MandatoryTracker.start`) before the session's
+events are followed, and nothing waits for a warm-up or skips the first
+minute. Since #286 the start also sends one check whose answer is
+ignored («Hola.»; it never ticks anything and a failure says nothing),
+so the RAG loads its model and the examples' vectors (computed once per
+process) before the first real sentence instead of on it.
+
+Time from saying an item to its tick = speech end → final + the RAG
+check + the feed (the orchestrator's part is negligible):
+
+| Part | Measured | How |
+|---|---|---|
+| speech end → final | p50 591–753 ms, p90 739–966 ms | `LIVE_MEASURES.md` (real transcriber, synthetic audio, three runs) |
+| orchestrator: final → checklist published, first sentence of the session | p50 5.3 µs, p90 5.7 µs (500 runs) | fake port, inline executor (2026-11-27) |
+| RAG check, **CPU**, in process | first check 6,213 ms (model load + examples); then p50 549 ms, p90 774 ms (90 checks of the 18 interview lines of `experiments/live/lv16/mandatory_lines.json`) | `MandatoryItems.check` with the knowledge model, `CUDA_VISIBLE_DEVICES=` (2026-11-27) |
+| RAG check on the running service (GPU) | **not measured** | it needs the running services |
+
+So on the CPU path an item said in the first sentence is ticked about
+1.2–1.5 s after the speech ends once warm; without the warm-up the
+first sentence after a RAG start would have paid the 6 s cold check.
+
 ## Threshold (measured 2026-11-21)
 
 `experiments/live/lv16/mandatory_lines.json`: 43 synthetic employee

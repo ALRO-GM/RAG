@@ -8,7 +8,11 @@ from orchestrator.adapters.outbound.fakes import FakeKnowledge, FakeReasoner
 from orchestrator.adapters.outbound.fs_mandatory import FileMandatory
 from orchestrator.adapters.outbound.jsonl_sink import MemoryHandoff
 from orchestrator.adapters.outbound.runtime import InlineExecutor
-from orchestrator.application.mandatory import MandatoryTracker, TickRefused
+from orchestrator.application.mandatory import (
+    WARM_TEXT,
+    MandatoryTracker,
+    TickRefused,
+)
 from orchestrator.application.ports import Document, MandatoryUnavailable
 from orchestrator.application.sessions import (
     LiveSessions,
@@ -139,6 +143,9 @@ def test_only_the_employee_s_sentences_are_checked() -> None:
     track, published = tracker(port)
     track.start()
     assert track.active and published[0]["type"] == "mandatory"
+    # #286: one warm-up check at the start, its answer ignored.
+    assert port.checked == [WARM_TEXT] and len(published) == 1
+    port.checked.clear()
     track.on_event(final("t0.s0", "S2", "Quiero 14 días de prueba"))
     assert port.checked == []
     track.on_event(final("t1.s0", "S1", "Buenos días"))
@@ -156,10 +163,33 @@ def test_only_the_employee_s_sentences_are_checked() -> None:
                                    "text": "Aviso de datos"}]
 
 
+def test_the_first_sentence_is_checked_and_a_warm_up_marks_nothing(
+) -> None:
+    """#286: nothing waits for a warm-up; the warm-up never ticks."""
+    port = FakeMandatory()
+    port.check = lambda domain, text: {  # type: ignore[method-assign]
+        "items": [{"id": "desistimiento", "score": 0.9, "said": True}]}
+    track, published = tracker(port)
+    track.start()
+    assert all(i["state"] == "pending" for i in track.view()["items"])
+    assert len(published) == 1
+    track.on_event(final("t0.s0", "S1", "Primera frase de la sesión."))
+    said = next(i for i in track.view()["items"]
+                if i["id"] == "desistimiento")
+    assert said["state"] == "said" and said["utterance"] == "t0.s0"
+    down = FakeMandatory()
+    track, published = tracker(down)
+    track.start()
+    down.fail = True
+    track._warm()  # a failed warm-up says nothing
+    assert [m["type"] for m in published] == ["mandatory"]
+
+
 def test_a_sentence_given_to_the_employee_later_is_checked() -> None:
     port = FakeMandatory()
     track, _ = tracker(port)
     track.start()
+    port.checked.clear()  # the warm-up check (#286)
     track.on_event(final("t0.s0", "S2", NOTICE))
     assert port.checked == []
     track.roles["ana"] = "agent"
