@@ -7,7 +7,11 @@ from typing import Callable, Dict, List, Optional, Tuple
 import pytest
 
 from src.application.knowledge.chosen_extractor import ChosenExtractor
-from src.application.knowledge.ports import ExtractedDocument
+from src.application.knowledge.ports import (
+    ExtractedDocument,
+    Progress,
+    StoredFile,
+)
 from src.application.pipeline_settings import PipelineSettings
 from src.domain.errors import BusyError, CorruptedDataError, InvalidInputError
 from src.domain.pipeline_settings import (
@@ -237,6 +241,10 @@ def test_the_judge_record_wins_and_its_failure_is_not_fatal() -> None:
     assert settings.current() is None
 
 
+FILE = StoredFile("never-opened.pdf", 1)
+"""What the fake readers get (they never open it)."""
+
+
 class Reader:
     """A document reader that says which combination it is."""
 
@@ -244,10 +252,13 @@ class Reader:
         """Keep the combination."""
         self.key = (ocr, captions)
 
-    def verify(self, data: bytes, document_type: str) -> None:
+    def verify(self, source: StoredFile, document_type: str) -> None:
         """Accept everything."""
 
-    def extract(self, data: bytes, document_type: str) -> ExtractedDocument:
+    def extract(
+        self, source: StoredFile, document_type: str,
+        progress: Optional[Progress] = None,
+    ) -> ExtractedDocument:
         """Return the combination as text."""
         return ExtractedDocument(text=str(self.key))
 
@@ -261,13 +272,13 @@ def test_uploads_follow_the_ocr_and_captions_saved_now() -> None:
         return Reader(ocr, captions)
 
     reader = ChosenExtractor(lambda: saved or None, build, (True, "florence"))
-    assert reader.extract(b"x", "pdf").text == "(True, 'florence')"
+    assert reader.extract(FILE, "pdf").text == "(True, 'florence')"
     saved.update({"knowledge.ocr": "off", "knowledge.captions": "claude"})
-    reader.verify(b"x", "pdf")
-    assert reader.extract(b"x", "pdf").text == "(False, 'claude')"
+    reader.verify(FILE, "pdf")
+    assert reader.extract(FILE, "pdf").text == "(False, 'claude')"
     saved["knowledge.captions"] = "weird"
     assert reader.choice() == (False, "florence")
-    reader.extract(b"x", "pdf")
-    reader.extract(b"x", "pdf")
+    reader.extract(FILE, "pdf")
+    reader.extract(FILE, "pdf")
     assert built == [(True, "florence"), (False, "claude"),
                      (False, "florence")], "each combination built once"

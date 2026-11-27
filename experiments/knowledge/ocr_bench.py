@@ -20,6 +20,7 @@ from typing import Any, Dict, List, Optional, Sequence
 from src.adapters.outbound.docling_pages import DoclingPages
 from src.adapters.outbound.document_extractors import DocumentExtractors
 from src.adapters.outbound.gpu_lease_file import FileGpuGate, lease_directory
+from src.application.knowledge.ports import StoredFile
 
 TEXT_PAGES = 120
 LINES_PER_PAGE = 48
@@ -126,20 +127,24 @@ def text_pdf(pages: int, lines: int, words: List[str]) -> bytes:
     return out
 
 
+def stored(path: Path) -> StoredFile:
+    """Return a file as the extractors take it (by path, #282)."""
+    return StoredFile(str(path), path.stat().st_size)
+
+
 def run(scans: Path, device: str, text_pdf_data: bytes) -> Dict[str, Any]:
     """Measure everything on ``device`` (``cpu`` or ``cuda``)."""
     reader = DoclingPages(Gate(device == "cuda"))
     layout = DocumentExtractors(reader)
     fast = DocumentExtractors(reader, layout_text_pages=False)
     result: Dict[str, Any] = {"device": device}
-    layout.extract((scans / "clean.pdf").read_bytes(), "pdf")  # warm-up
+    layout.extract(stored(scans / "clean.pdf"), "pdf")  # warm-up
     table = json.loads((scans / "clean.table.json").read_text())
     expected_cells = [c for row in table for c in row]
     total_pages, total_seconds = 0, 0.0
     for name in ("clean", "noisy"):
-        data = (scans / f"{name}.pdf").read_bytes()
         started = time.perf_counter()
-        found = layout.extract(data, "pdf")
+        found = layout.extract(stored(scans / f"{name}.pdf"), "pdf")
         seconds = time.perf_counter() - started
         total_pages += found.pages or 0
         total_seconds += seconds
@@ -163,7 +168,9 @@ def run(scans: Path, device: str, text_pdf_data: bytes) -> Dict[str, Any]:
     for label, extractor in (("docling_text_pages", layout),
                              ("pypdf_text_layer", fast)):
         started = time.perf_counter()
-        found = extractor.extract(text_pdf_data, "pdf")
+        text_pdf = scans / "text-layer.pdf"
+        text_pdf.write_bytes(text_pdf_data)
+        found = extractor.extract(stored(text_pdf), "pdf")
         seconds = time.perf_counter() - started
         result[label] = {
             "pages": found.pages, "seconds": round(seconds, 2),

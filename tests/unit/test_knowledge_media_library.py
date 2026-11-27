@@ -1,5 +1,7 @@
 """Audio and video uploads in the library: transcribed, then indexed."""
 
+import tempfile
+from pathlib import Path
 from typing import List
 
 import pytest
@@ -11,8 +13,9 @@ from src.application.knowledge.media import (
     UNREACHABLE,
     MediaTranscription,
 )
-from src.application.knowledge.ports import MediaJob
+from src.application.knowledge.ports import MediaJob, StoredFile
 from src.application.knowledge.registry import DomainIndexRegistry
+from src.application.knowledge.uploads import DocumentUploads
 from src.domain.errors import (
     InvalidInputError,
     NotFoundError,
@@ -21,9 +24,11 @@ from src.domain.errors import (
 from src.domain.knowledge.documents import DocumentMetadata
 from src.domain.knowledge.domains import DomainManifest, Vocabularies
 from src.domain.knowledge.media import media_job_id
+from src.domain.knowledge.uploads import UploadLimits
 from tests.knowledge_fakes import (
     UNREACHABLE as DOWN,
     FakeExtractor,
+    FakeUploadArea,
     FakeMediaTranscriber,
     InMemoryCatalogue,
     InMemoryDocumentStore,
@@ -53,13 +58,15 @@ class Setup:
     """A library over one domain, with a scripted transcriber."""
 
     def __init__(self, linked: bool = True) -> None:
-        """Wire the fakes."""
+        """Wire the fakes (files in a temporary folder)."""
+        self.folder = tempfile.TemporaryDirectory()
+        root = Path(self.folder.name)
         self.indexes = InMemoryIndexes()
         self.catalogue = InMemoryCatalogue(DomainManifest(
             id="acme", title="Acme", language="es",
             vocabularies=Vocabularies(intent=["refund", "pricing"]),
         ))
-        self.store = InMemoryDocumentStore(self.indexes)
+        self.store = InMemoryDocumentStore(self.indexes, root / "originals")
         self.queue = ManualQueue()
         self.media_queue = ManualQueue()
         self.clock = Clock()
@@ -75,16 +82,19 @@ class Setup:
             extra_documents=lambda d: library.pending_documents(d),
         )
         library = KnowledgeLibrary(
-            registry, self.store, FakeExtractor(), self.queue, 10_000,
+            registry, self.store, FakeExtractor(), self.queue,
+            UploadLimits(pdf=10_000, video=10_000, audio=10_000,
+                         document=10_000),
             lambda: "2026-11-24T10:00:00+00:00",
             self.media if linked else None,
             self.media_queue if linked else None,
         )
         self.library = library
+        self.uploads = DocumentUploads(library, FakeUploadArea(root / "up"), 0)
 
     def upload(self, name: str = "Clase 1.mp3") -> str:
         """Upload a recording; return its id."""
-        return self.library.upload(
+        return self.uploads.upload(
             "acme", name, MP3, DocumentMetadata(intent="refund")
         ).id
 
@@ -258,7 +268,7 @@ def test_without_a_transcriber_audio_is_refused() -> None:
     with pytest.raises(ValueError):
         KnowledgeLibrary(
             plain.library.registry, plain.store, FakeExtractor(),
-            plain.queue, 10, lambda: "", plain.media, None,
+            plain.queue, UploadLimits(), lambda: "", plain.media, None,
         )
 
 
@@ -313,4 +323,4 @@ def test_media_transcription_refuses_cleanly() -> None:
     transcriber.submit_error = UnsupportedDocumentError("no")
     media = MediaTranscription(transcriber, 60, sleep=lambda s: None)
     with pytest.raises(InvalidInputError, match="no"):
-        media.transcribe("kn-x", b"x", "wav", "es")
+        media.transcribe("kn-x", StoredFile("x.wav", 1), "wav", "es")

@@ -9,13 +9,16 @@ installed. The resampling helpers are copied from
 
 :func:`pcm16_blocks` decodes a stored file block by block into mono
 16-bit PCM for the player's WAV rendering, so a long recording is never
-held whole in memory.
+held whole in memory. A recording handed over by its path (a large
+video, #282) is decoded from the file, and :meth:`AvAudioDecoder.
+duration` reads its length from the header, so a recording over the
+limit is refused before it is decoded.
 """
 
 import io
 from math import gcd
 from pathlib import Path
-from typing import TYPE_CHECKING, Iterator, List
+from typing import TYPE_CHECKING, Iterator, List, Optional, Union
 
 import numpy as np
 import numpy.typing as npt
@@ -27,6 +30,8 @@ if TYPE_CHECKING:  # PyAV is imported only when a file needs it
     from av.audio.frame import AudioFrame
 
 FloatArray = npt.NDArray[np.float32]
+Source = Union[str, io.BytesIO]
+"""A recording to decode: its file's path, or its bytes in memory."""
 
 DEFAULT_SAMPLE_RATE = 16000
 """What the speech and voice models expect."""
@@ -89,39 +94,72 @@ class AvAudioDecoder:
         decoded or hold no audio.
         """
         kind = recording.format.lower().lstrip(".")
-        if not recording.data:
+        if recording.empty:
             raise InvalidInputError("The recording is empty.")
-        if kind == PCM_FORMAT:
+        source: Source = (
+            recording.path if recording.path is not None
+            else io.BytesIO(recording.data)
+        )
+        if kind == PCM_FORMAT and recording.path is None:
             samples = resample(
                 pcm_samples(recording.data), PCM_RATE, self.sample_rate
             )
         elif kind in SOUNDFILE_FORMATS:
-            samples = self._soundfile(recording.data)
+            samples = self._soundfile(source)
         else:
-            samples = self._pyav(recording.data, kind)
+            samples = self._pyav(source, kind)
         if samples.size == 0:
             raise InvalidInputError("The recording contains no audio.")
         return Audio(samples=samples, sample_rate=self.sample_rate)
 
-    def _soundfile(self, data: bytes) -> FloatArray:
+    def duration(self, recording: RecordedAudio) -> Optional[float]:
+        """Return the recording's length from its header, without decoding.
+
+        ``None`` when the container does not say (the decode finds out).
+        """
+        source: Source = (
+            recording.path if recording.path is not None
+            else io.BytesIO(recording.data)
+        )
+        try:
+            import av
+
+            with av.open(source, mode="r") as container:
+                if container.duration is not None:
+                    return float(container.duration) / av.time_base
+                for stream in container.streams.audio:
+                    if stream.duration is not None and \
+                            stream.time_base is not None:
+                        return float(stream.duration * stream.time_base)
+        except Exception:  # unreadable here: the decode stage says why
+            return None
+        return None
+
+    def _soundfile(self, source: Source) -> FloatArray:
         """Decode with libsndfile; fall back to PyAV if it refuses."""
         import soundfile
 
         try:
             frames, rate = soundfile.read(
-                io.BytesIO(data), dtype="float32", always_2d=True
+                source, dtype="float32", always_2d=True
             )
         except (soundfile.LibsndfileError, RuntimeError, TypeError):
-            return self._pyav(data, "audio")
+            if isinstance(source, io.BytesIO):
+                source.seek(0)
+            return self._pyav(source, "audio")
         return resample(to_mono(frames), int(rate), self.sample_rate)
 
-    def _pyav(self, data: bytes, kind: str) -> FloatArray:
-        """Decode the first audio stream of any container with PyAV."""
+    def _pyav(self, source: Source, kind: str) -> FloatArray:
+        """Decode the first audio stream of any container with PyAV.
+
+        A file given by path is read by FFmpeg as it decodes, never
+        loaded whole.
+        """
         import av
 
         parts: List[FloatArray] = []
         try:
-            with av.open(io.BytesIO(data), mode="r") as container:
+            with av.open(source, mode="r") as container:
                 if not container.streams.audio:
                     raise InvalidInputError(
                         f"The {kind} recording has no audio stream."

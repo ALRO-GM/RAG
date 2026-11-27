@@ -1041,7 +1041,13 @@ class TranscribeSession:
 
 
 def _sha256(recording: RecordedAudio) -> str:
-    """Return the SHA-256 of the recording's bytes."""
+    """Return the SHA-256 of the recording's bytes.
+
+    A recording handed over as a file carries the digest its adapter
+    computed while reading it in pieces.
+    """
+    if recording.sha256 is not None:
+        return recording.sha256
     return hashlib.sha256(recording.data).hexdigest()
 
 

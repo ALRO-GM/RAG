@@ -318,7 +318,10 @@ spoofable, forwarding headers dropped, a 5 MB upload, a ranged 206, a
 JSON 413 over the limit; a container on the outer network cannot reach
 `tunnel:8080`, `tunnel:9000` or the container's address on either port;
 during a 200 MB upload the tunnel container's memory peak (cgroup
-`memory.peak`) stays under its 64 MiB limit; client killed → 502;
+`memory.peak`) stays under its 64 MiB limit (the knowledge library's
+large files, up to 1 GiB since #282, cross the tunnel as separate
+requests of at most 8 MiB each, `docs/KNOWLEDGE.md` §4.1, so neither
+this figure nor the web container's 260 MiB body limit changes); client killed → 502;
 client started again → 200.
 
 It also checks what the credential and the container can reach. A

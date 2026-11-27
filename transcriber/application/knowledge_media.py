@@ -20,7 +20,7 @@ deleted when the service starts (:meth:`KnowledgeMediaJobs.clear`).
 """
 
 import re
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, Optional, Tuple
 
 from pydantic import BaseModel, ConfigDict
 
@@ -34,6 +34,7 @@ from transcriber.application.transcribe import (
     QueueTranscription,
     TranscriptionOptions,
     TranscriptionStatus,
+    check_duration,
 )
 from transcriber.domain.errors import (
     InvalidInputError,
@@ -89,6 +90,9 @@ class KnowledgeMediaJobs:
         queue: Queues a session of that repository in the job runner.
         status: Tells where a session of that repository is.
         formats: The file formats accepted (the API's upload formats).
+        probe: Reads a recording's length from its header (``None``:
+            not known); a recording over ``max_seconds`` is then
+            refused before it is queued, never decoded.
     """
 
     def __init__(
@@ -99,6 +103,7 @@ class KnowledgeMediaJobs:
         queue: QueueTranscription,
         status: TranscriptionStatus,
         formats: Tuple[str, ...],
+        probe: Optional[Callable[[RecordedAudio], Optional[float]]] = None,
     ) -> None:
         """Wire the use cases of the jobs' own repository."""
         self._sessions = sessions
@@ -107,6 +112,7 @@ class KnowledgeMediaJobs:
         self._queue = queue
         self._status = status
         self._formats = formats
+        self._probe = probe
 
     def submit(
         self,
@@ -115,13 +121,17 @@ class KnowledgeMediaJobs:
         data: bytes,
         language: str,
         max_seconds: Optional[float] = None,
+        path: Optional[str] = None,
     ) -> MediaJob:
-        """Start transcribing ``data``; return the job.
+        """Start transcribing ``data`` (or the file at ``path``); return
+        the job.
 
-        Sending a job that is queued, running or done again changes
-        nothing (the RAG's worker may retry after a lost answer); a
-        failed one is started again. ``max_seconds`` is the longest
-        recording accepted: a longer one fails at the decode stage.
+        A file given by ``path`` is moved into the job, never read
+        whole (#282). Sending a job that is queued, running or done
+        again changes nothing (the RAG's worker may retry after a lost
+        answer); a failed one is started again. ``max_seconds`` is the
+        longest recording accepted: a longer one is refused here when
+        its header says so, else it fails at the decode stage.
         """
         check_job_id(job_id)
         if file_format not in self._formats:
@@ -135,7 +145,12 @@ class KnowledgeMediaJobs:
                 return self.status(job_id)
             if existing is not None:
                 self._sessions.delete(job_id)
-        self._import(job_id, language, RecordedAudio(data, file_format))
+        recording = RecordedAudio(data, file_format, path=path)
+        if self._probe is not None and max_seconds is not None:
+            length = self._probe(recording)
+            if length is not None:
+                check_duration(length, max_seconds)
+        self._import(job_id, language, recording)
         self._queue(job_id, TranscriptionOptions(
             expected_speakers=[], max_seconds=max_seconds,
         ))

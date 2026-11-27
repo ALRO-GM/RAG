@@ -50,6 +50,7 @@ from src.adapters.outbound.json_dataset_repository import (
     JsonDatasetRepository,
 )
 from src.adapters.outbound.knowledge_processor import KnowledgeProcessor
+from src.adapters.outbound.fs_upload_area import FileSystemUploadArea
 from src.adapters.outbound.json_router_repository import (
     JsonRouterRepository,
 )
@@ -86,6 +87,7 @@ from src.application.knowledge.ports import (
     IndexState,
 )
 from src.application.knowledge.library import KnowledgeLibrary
+from src.application.knowledge.uploads import DocumentUploads
 from src.application.knowledge.media import MediaTranscription
 from src.application.knowledge.avoid import AvoidQuestions
 from src.application.knowledge.mandatory import MandatoryItems
@@ -545,10 +547,19 @@ class Container:
             FileSystemDocumentStore(k.data_dir),
             self.upload_reader,
             ThreadJobQueue(),
-            k.max_upload_bytes,
+            k.upload_limits,
             utc_now,
             self.media_transcription,
             ThreadJobQueue("knowledge-media"),
+        )
+
+    @cached_property
+    def knowledge_uploads(self) -> DocumentUploads:
+        """Documents received in pieces, with resume (#282)."""
+        k = self.knowledge_settings
+        return DocumentUploads(
+            self.knowledge_library, FileSystemUploadArea(k.data_dir),
+            k.min_free_bytes, k.upload_ttl_hours * 3600.0,
         )
 
     @cached_property

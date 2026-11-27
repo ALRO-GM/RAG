@@ -14,13 +14,18 @@ import logging
 import time
 from typing import Callable, Optional
 
-from src.application.knowledge.ports import MediaJob, MediaTranscriber
+from src.application.knowledge.ports import (
+    MediaJob,
+    MediaTranscriber,
+    StoredFile,
+)
 from src.domain.errors import (
     BusyError,
     InvalidInputError,
     NotFoundError,
     RagError,
     ServiceUnavailableError,
+    UnsupportedDocumentError,
 )
 from src.domain.knowledge.media import (
     clock,
@@ -85,12 +90,12 @@ class MediaTranscription:
     def transcribe(
         self,
         job_id: str,
-        data: bytes,
+        source: StoredFile,
         file_format: str,
         language: str,
         wanted: Callable[[], bool] = lambda: True,
     ) -> Optional[str]:
-        """Return the timed text of the recording ``data``.
+        """Return the timed text of the recording ``source``.
 
         ``wanted`` tells whether the document still exists: once it is
         gone the job is deleted at the transcriber (as soon as it is no
@@ -98,10 +103,15 @@ class MediaTranscription:
         lost (it restarted) is sent once more.
         """
         def submit() -> MediaJob:
-            """Send the file."""
-            return self.transcriber.submit(
-                job_id, data, file_format, language, self.max_seconds
-            )
+            """Send the file (a refusal says why, as a failed job would)."""
+            try:
+                return self.transcriber.submit(
+                    job_id, source, file_format, language, self.max_seconds
+                )
+            except UnsupportedDocumentError:
+                raise
+            except InvalidInputError as exc:  # e.g. longer than the limit
+                raise InvalidInputError(media_failure(str(exc))) from None
 
         try:
             job = submit()

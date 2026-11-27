@@ -67,6 +67,11 @@ class ApiSettings(BaseModel):
     16-bit PCM is about 32 KB per second), ``upload_max_bytes`` for a
     whole recording uploaded at once, ``enrolment_max_bytes`` for an
     enrolment sample and ``json_max_bytes`` for a JSON body.
+    ``knowledge_media_max_bytes`` is the largest audio or video the
+    RAG's library sends to be transcribed (its video limit, 1 GiB;
+    streamed to disk, never held in memory) and
+    ``knowledge_media_min_free_bytes`` the disk such a file must leave
+    free.
 
     Wrong access codes are throttled per client: after
     ``failed_code_limit`` failures within ``failed_code_window``
@@ -95,6 +100,8 @@ class ApiSettings(BaseModel):
 
     chunk_max_bytes: int = Field(default=1 * MIB, gt=0)
     upload_max_bytes: int = Field(default=256 * MIB, gt=0)
+    knowledge_media_max_bytes: int = Field(default=1024 * MIB, gt=0)
+    knowledge_media_min_free_bytes: int = Field(default=512 * MIB, ge=0)
     enrolment_max_bytes: int = Field(default=20 * MIB, gt=0)
     json_max_bytes: int = Field(default=64 * 1024, gt=0)
     failed_code_limit: int = Field(default=10, ge=1)

@@ -56,10 +56,22 @@ class RecordedAudio:
 
     ``format`` is :data:`PCM_FORMAT` for audio uploaded in chunks, or
     the file extension (``wav``, ``m4a``...) of an imported recording.
+
+    A large recording (a video of the knowledge library, #282) is not
+    held in memory: ``path`` names its file and ``data`` is empty;
+    ``sha256`` is then its digest, computed by the adapter that read it
+    in pieces. Only adapters open ``path``.
     """
 
     data: bytes
     format: str
+    path: Optional[str] = None
+    sha256: Optional[str] = None
+
+    @property
+    def empty(self) -> bool:
+        """Tell whether there is no audio at all (no bytes, no file)."""
+        return not self.data and self.path is None
 
 
 @dataclass(frozen=True)
@@ -441,7 +453,8 @@ class KnowledgePort(Protocol):
     :class:`~transcriber.domain.errors.NotFoundError` (404),
     :class:`~transcriber.domain.errors.StateError` (409),
     :class:`~transcriber.domain.errors.TooLargeError` (413),
-    :class:`~transcriber.domain.errors.UnsupportedMediaError` (415) and
+    :class:`~transcriber.domain.errors.UnsupportedMediaError` (415),
+    :class:`~transcriber.domain.errors.NoSpaceError` (507) and
     :class:`~transcriber.domain.errors.RagUnavailableError` otherwise.
     """
 

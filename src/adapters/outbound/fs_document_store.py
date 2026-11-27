@@ -3,8 +3,12 @@
 Layout under ``<data_root>/<domain>/``::
 
     documents/<id>.json   the KnowledgeDocument record
-    originals/<id><ext>   the uploaded bytes, as received
+    originals/<id><ext>   the uploaded bytes, as received (mode 600)
     extracted/<id>.md     front matter + extracted Markdown (indexed)
+
+An original is never read here: the file received in pieces is moved
+into ``originals/`` (a rename on the same disk) and handed to the
+readers by its path.
 
 Ids are checked against their patterns before any path is built, so
 no request can name a file outside these folders.
@@ -12,6 +16,7 @@ no request can name a file outside these folders.
 
 import os
 import re
+import shutil
 from pathlib import Path
 from typing import List
 
@@ -27,6 +32,7 @@ from src.domain.knowledge.documents import (
     EXTENSIONS,
     KnowledgeDocument,
 )
+from src.application.knowledge.ports import StoredFile
 from src.domain.knowledge.domains import check_domain_id
 
 
@@ -37,11 +43,16 @@ def check_document_id(value: str) -> str:
     return value
 
 
-def write_atomically(path: Path, data: bytes) -> None:
-    """Write ``data`` to ``path`` through a temporary file and a rename."""
+def write_atomically(path: Path, data: bytes, mode: int = 0o666) -> None:
+    """Write ``data`` to ``path`` through a temporary file and a rename.
+
+    The file is created with ``mode`` (less the umask) from the start.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(f".{path.name}.tmp")
-    with open(tmp, "wb") as handle:
+    tmp.unlink(missing_ok=True)  # a leftover would keep its old mode
+    descriptor = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, mode)
+    with os.fdopen(descriptor, "wb") as handle:
         handle.write(data)
         handle.flush()
         os.fsync(handle.fileno())
@@ -101,20 +112,38 @@ class FileSystemDocumentStore:
         return self._folder(domain_id, "originals") / \
             f"{check_document_id(document.id)}{extension}"
 
-    def save_original(
-        self, domain_id: str, document: KnowledgeDocument, data: bytes
+    def keep_original(
+        self, domain_id: str, document: KnowledgeDocument, source: StoredFile
     ) -> None:
-        """Keep the uploaded bytes."""
-        write_atomically(self._original(domain_id, document), data)
+        """Move the received file into ``originals/`` (mode 600).
 
-    def original(self, domain_id: str, document: KnowledgeDocument) -> bytes:
-        """Return the uploaded bytes."""
+        A rename when both are on the same disk; else a copy in pieces
+        and the source deleted.
+        """
+        target = self._original(domain_id, document)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        os.chmod(source.path, 0o600)
         try:
-            return self._original(domain_id, document).read_bytes()
+            os.replace(source.path, target)
+        except OSError:
+            tmp = target.with_name(f".{target.name}.tmp")
+            shutil.copyfile(source.path, tmp)
+            os.chmod(tmp, 0o600)
+            tmp.replace(target)
+            Path(source.path).unlink(missing_ok=True)
+
+    def original(
+        self, domain_id: str, document: KnowledgeDocument
+    ) -> StoredFile:
+        """Return the original's path and size."""
+        path = self._original(domain_id, document)
+        try:
+            size = path.stat().st_size
         except OSError:
             raise NotFoundError(
                 f"The upload of {document.id!r} is missing."
             )
+        return StoredFile(str(path), size)
 
     def text_path(self, domain_id: str, document_id: str) -> str:
         """Return the indexed path of a document's extracted text."""

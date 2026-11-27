@@ -13,6 +13,7 @@ from src.adapters.outbound.opencode_judge import (
     DEFAULT_OPENCODE_MODEL,
 )
 from src.domain.errors import InvalidInputError
+from src.domain.knowledge.uploads import UploadLimits
 from src.domain.skills.claude_models import ClaudeModels, check_claude_model
 from src.domain.skills.conversation_events import EventRules
 
@@ -189,7 +190,20 @@ class KnowledgeSettings(BaseModel):
     max_chunk_size: int = Field(default=1000, ge=100, le=2000)
     path_weight: int = Field(default=1, ge=0)
     context_weight: int = Field(default=3, ge=0)
-    max_upload_bytes: int = Field(default=200 * MiB, ge=1)
+    max_pdf_bytes: int = Field(default=500 * MiB, ge=1)
+    """Largest PDF accepted (#282)."""
+    max_video_bytes: int = Field(default=1024 * MiB, ge=1)
+    """Largest video accepted: ``.mp4``/``.webm``/``.mov``/``.3gp`` whose
+    content is a video container (#282)."""
+    max_audio_bytes: int = Field(default=200 * MiB, ge=1)
+    """Largest audio file accepted."""
+    max_document_bytes: int = Field(default=100 * MiB, ge=1)
+    """Largest file of any other type (DOCX, XLSX, images, text...)."""
+    min_free_bytes: int = Field(default=1024 * MiB, ge=0)
+    """Disk always left free: an upload that would eat into it is
+    refused before its first byte (``507``)."""
+    upload_ttl_hours: float = Field(default=24.0, gt=0)
+    """How long a partial upload nobody sends to is kept."""
     ocr: bool = True
     """Read PDFs with layout and OCR, accept images (group ``ocr``)."""
     layout_text_pages: bool = True
@@ -219,6 +233,14 @@ class KnowledgeSettings(BaseModel):
     session keeps the GPU and delays batch jobs)."""
     media_poll_seconds: float = Field(default=5.0, gt=0)
     """Time between two questions about a transcription."""
+
+    @property
+    def upload_limits(self) -> UploadLimits:
+        """Return the largest file accepted of each kind."""
+        return UploadLimits(
+            pdf=self.max_pdf_bytes, video=self.max_video_bytes,
+            audio=self.max_audio_bytes, document=self.max_document_bytes,
+        )
 
 
 DEFAULT_SKILLS_EMBEDDING_MODEL = (

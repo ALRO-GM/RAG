@@ -12,6 +12,12 @@ read with layout and tables, pages without a text layer are OCR'd, and
 PNG/JPEG/TIFF/WebP images are accepted. Without one the PDF path is the
 plain text layer and a scanned PDF or an image fails with a clear
 message.
+
+Files are read from their path, never loaded whole: a 500 MB PDF is
+opened once for its text layer (``pypdf`` on an open file, which seeks)
+and handed to the layout reader by path, a batch of pages at a time;
+the figures of a batch are captioned and dropped before the next one,
+and the caller is told the pages read so far.
 """
 
 import csv
@@ -20,6 +26,7 @@ import logging
 import re
 import zipfile
 from html.parser import HTMLParser
+from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence
 
 from src.application.knowledge.ports import (
@@ -27,6 +34,8 @@ from src.application.knowledge.ports import (
     ImageCaptioner,
     PageContent,
     PageLayoutReader,
+    Progress,
+    StoredFile,
 )
 from src.domain.errors import InvalidInputError, UnsupportedDocumentError
 from src.domain.knowledge.documents import IMAGE_TYPES
@@ -109,10 +118,10 @@ def markdown_table(rows: Iterable[Sequence[Any]]) -> str:
     return "\n".join(lines)
 
 
-def check_zip(data: bytes, kind: str) -> None:
+def check_zip(path: str, kind: str) -> None:
     """Check that a DOCX/ODT/XLSX is the ZIP container it claims to be."""
     try:
-        archive = zipfile.ZipFile(io.BytesIO(data))
+        archive = zipfile.ZipFile(path)
     except zipfile.BadZipFile:
         raise UnsupportedDocumentError(
             f"El archivo no es un {kind.upper()} válido. / The file is not "
@@ -137,12 +146,12 @@ def check_zip(data: bytes, kind: str) -> None:
         )
 
 
-def check_image(data: bytes, kind: str) -> None:
+def check_image(path: str, kind: str) -> None:
     """Check that an image decodes its header and is not a pixel bomb."""
     from PIL import Image, UnidentifiedImageError
 
     try:
-        with Image.open(io.BytesIO(data)) as image:
+        with Image.open(path) as image:
             width, height = image.size
             frames = int(getattr(image, "n_frames", 1))
     except (UnidentifiedImageError, OSError, ValueError, SyntaxError):
@@ -156,19 +165,24 @@ def check_image(data: bytes, kind: str) -> None:
         )
 
 
-def read_pdf_pages(data: bytes) -> List[str]:
-    """Return the text layer of each page of a PDF (``""`` when none)."""
+def read_pdf_pages(path: str) -> List[str]:
+    """Return the text layer of each page of a PDF (``""`` when none).
+
+    The file is opened, not loaded: ``pypdf`` given a path would read it
+    whole into memory, given an open file it seeks.
+    """
     from pypdf import PdfReader
     from pypdf.errors import PdfReadError
 
     try:
-        reader = PdfReader(io.BytesIO(data))
-        if reader.is_encrypted and not reader.decrypt(""):
-            raise InvalidInputError(
-                "El PDF está protegido con contraseña. / The PDF is "
-                "password-protected."
-            )
-        return [page.extract_text() or "" for page in reader.pages]
+        with open(path, "rb") as handle:
+            reader = PdfReader(handle)
+            if reader.is_encrypted and not reader.decrypt(""):
+                raise InvalidInputError(
+                    "El PDF está protegido con contraseña. / The PDF is "
+                    "password-protected."
+                )
+            return [page.extract_text() or "" for page in reader.pages]
     except (PdfReadError, ValueError, KeyError, TypeError) as exc:
         raise InvalidInputError(
             f"No se pudo leer el PDF / Cannot read the PDF ({exc})."
@@ -211,9 +225,9 @@ def page_sections(pages: Dict[int, str]) -> str:
     return "\n\n".join(sections)
 
 
-def pdf_text(data: bytes) -> ExtractedDocument:
+def pdf_text(path: str) -> ExtractedDocument:
     """Return the text layer of a PDF, one ``## p. N`` section a page."""
-    pages = read_pdf_pages(data)
+    pages = read_pdf_pages(path)
     if sum(len(p.strip()) for p in pages) < MIN_PDF_TEXT:
         raise InvalidInputError(NO_PDF_TEXT)
     return ExtractedDocument(
@@ -236,13 +250,13 @@ HEADING_STYLE = re.compile(r"^(heading|título|titulo|encabezado)\s*(\d)",
                            re.IGNORECASE)
 
 
-def docx_text(data: bytes) -> ExtractedDocument:
+def docx_text(path: str) -> ExtractedDocument:
     """Return a DOCX's paragraphs and tables in document order."""
     import docx
     from docx.table import Table
     from docx.text.paragraph import Paragraph
 
-    document = docx.Document(io.BytesIO(data))
+    document = docx.Document(path)
     blocks: List[str] = []
     for item in document.iter_inner_content():
         if isinstance(item, Paragraph):
@@ -265,13 +279,13 @@ def docx_text(data: bytes) -> ExtractedDocument:
     return ExtractedDocument("\n\n".join(b for b in blocks if b))
 
 
-def odt_text(data: bytes) -> ExtractedDocument:
+def odt_text(path: str) -> ExtractedDocument:
     """Return an ODT's headings, paragraphs, lists and tables."""
     from odf import teletype
     from odf.namespaces import TABLENS, TEXTNS
     from odf.opendocument import load
 
-    document = load(io.BytesIO(data))
+    document = load(path)
     blocks: List[str] = []
 
     def walk(node: Any) -> None:
@@ -309,27 +323,27 @@ def _table_row() -> Any:
     return TableRow
 
 
-def xlsx_text(data: bytes) -> ExtractedDocument:
+def xlsx_text(path: str) -> ExtractedDocument:
     """Return each sheet of a workbook as a section with a table."""
     from openpyxl import load_workbook
 
-    workbook = load_workbook(io.BytesIO(data), read_only=True,
-                             data_only=True)
     sections: List[str] = []
-    try:
-        for sheet in workbook.worksheets:
-            table = markdown_table(sheet.iter_rows(values_only=True))
-            if table:
-                sections.append(f"## {sheet.title}\n\n{table}")
-    finally:
-        workbook.close()
+    with open(path, "rb") as handle:  # by name it wants an .xlsx suffix
+        workbook = load_workbook(handle, read_only=True, data_only=True)
+        try:
+            for sheet in workbook.worksheets:
+                table = markdown_table(sheet.iter_rows(values_only=True))
+                if table:
+                    sections.append(f"## {sheet.title}\n\n{table}")
+        finally:
+            workbook.close()
     return ExtractedDocument("\n\n".join(sections),
                              len(workbook.worksheets))
 
 
-def csv_text(data: bytes) -> ExtractedDocument:
+def csv_text(path: str) -> ExtractedDocument:
     """Return a CSV (any common delimiter) as a Markdown table."""
-    text = decode_text(data)
+    text = decode_text(Path(path).read_bytes())
     try:
         dialect: Any = csv.Sniffer().sniff(text[:8192], ",;\t|")
     except csv.Error:
@@ -393,10 +407,10 @@ class _HtmlText(HTMLParser):
             self.parts.append(text)
 
 
-def html_text(data: bytes) -> ExtractedDocument:
+def html_text(path: str) -> ExtractedDocument:
     """Return the visible text of an HTML page, headings kept."""
     parser = _HtmlText()
-    parser.feed(decode_text(data))
+    parser.feed(decode_text(Path(path).read_bytes()))
     parser.close()
     body = "".join(parser.parts)
     blocks = [re.sub(r"[ \t]+", " ", b).strip(" |")
@@ -408,12 +422,12 @@ def html_text(data: bytes) -> ExtractedDocument:
     return ExtractedDocument(text)
 
 
-def plain_text(data: bytes) -> ExtractedDocument:
+def plain_text(path: str) -> ExtractedDocument:
     """Return Markdown or text as it is."""
-    return ExtractedDocument(decode_text(data))
+    return ExtractedDocument(decode_text(Path(path).read_bytes()))
 
 
-EXTRACTORS: Dict[str, Callable[[bytes], ExtractedDocument]] = {
+EXTRACTORS: Dict[str, Callable[[str], ExtractedDocument]] = {
     "pdf": pdf_text,
     "docx": docx_text,
     "odt": odt_text,
@@ -456,25 +470,36 @@ class DocumentExtractors:
         self.captioner = captioner
         self.max_figures = max_figures
 
-    def verify(self, data: bytes, document_type: str) -> None:
+    def verify(self, source: StoredFile, document_type: str) -> None:
         """Check the container of a DOCX/ODT/XLSX or an image's header."""
         if document_type in ZIP_MEMBERS:
-            check_zip(data, document_type)
+            check_zip(source.path, document_type)
         elif document_type in IMAGE_TYPES:
             if self.layout is None:
                 raise UnsupportedDocumentError(NO_OCR_IMAGE)
-            check_image(data, document_type)
+            check_image(source.path, document_type)
 
-    def extract(self, data: bytes, document_type: str) -> ExtractedDocument:
-        """Return the text of ``data``; ``InvalidInputError`` when none."""
-        extractor = self._extractor(document_type)
-        if extractor is None:
-            raise UnsupportedDocumentError(
-                f"Unsupported document type {document_type!r}."
-            )
-        self.verify(data, document_type)
+    def extract(
+        self, source: StoredFile, document_type: str,
+        progress: Optional[Progress] = None,
+    ) -> ExtractedDocument:
+        """Return the text of ``source``; ``InvalidInputError`` when none.
+
+        ``progress`` is told the pages read so far of a PDF read with
+        layout (after each batch).
+        """
+        self.verify(source, document_type)
         try:
-            found = extractor(data)
+            if self.layout is not None and document_type == "pdf":
+                found = self._pdf_with_layout(source, progress)
+            elif document_type in IMAGE_TYPES:
+                found = self._image(source, document_type)
+            elif document_type in EXTRACTORS:
+                found = EXTRACTORS[document_type](source.path)
+            else:
+                raise UnsupportedDocumentError(
+                    f"Unsupported document type {document_type!r}."
+                )
         except InvalidInputError:
             raise
         except Exception as exc:  # a broken file of any library
@@ -493,25 +518,15 @@ class DocumentExtractors:
             )
         return found
 
-    def _extractor(
-        self, document_type: str
-    ) -> Optional[Callable[[bytes], ExtractedDocument]]:
-        """Return the function reading ``document_type`` (``None``: none)."""
-        if self.layout is not None and document_type == "pdf":
-            return self._pdf_with_layout
-        if document_type in IMAGE_TYPES:
-            return lambda data: self._image(data, document_type)
-        return EXTRACTORS.get(document_type)
-
     def _read(
-        self, data: bytes, kind: str, numbers: Optional[List[int]],
+        self, source: StoredFile, kind: str, numbers: Optional[List[int]],
         ocr: bool,
     ) -> Dict[int, PageContent]:
         """Ask the layout reader for pages; a failure gives no pages."""
         assert self.layout is not None
         try:
             got = self.layout.read_pages(
-                data, kind, numbers, ocr, self.captioner is not None
+                source, kind, numbers, ocr, self.captioner is not None
             )
         except InvalidInputError:
             raise
@@ -541,53 +556,75 @@ class DocumentExtractors:
         budget[0] -= len(figures)
         return notes
 
-    def _pdf_with_layout(self, data: bytes) -> ExtractedDocument:
+    def _pdf_with_layout(
+        self, source: StoredFile, progress: Optional[Progress] = None,
+    ) -> ExtractedDocument:
         """Read a PDF page by page: layout for text pages, OCR for scans.
 
         A batch the reader fails on falls back to the text layer of its
-        pages (scanned pages of it stay empty).
+        pages (scanned pages of it stay empty). Each batch's figures are
+        captioned as soon as it is read and then dropped, so a PDF full
+        of pictures never holds them all; ``progress`` is told the pages
+        done after each batch.
         """
-        texts = read_pdf_pages(data)
+        texts = read_pdf_pages(source.path)
+        total = len(texts)
         has_text = [len(t.strip()) >= MIN_PAGE_TEXT for t in texts]
-        found: Dict[int, PageContent] = {}
+        bodies: Dict[int, str] = {}
+        budget = [self.max_figures]
         plans = (
             (False, [n for n, ok in enumerate(has_text, 1) if ok]),
             (True, [n for n, ok in enumerate(has_text, 1) if not ok]),
         )
-        for ocr, numbers in plans:
-            if not ocr and not self.layout_text_pages and \
-                    self.captioner is None:
-                continue
-            for run in page_runs(numbers, self.batch_pages):
-                found.update(self._read(data, "pdf", run, ocr))
-        budget = [self.max_figures]
+        runs = [
+            (ocr, run) for ocr, numbers in plans
+            if ocr or self.layout_text_pages or self.captioner is not None
+            for run in page_runs(numbers, self.batch_pages)
+        ]
+        planned = sum(len(run) for _, run in runs)
+        done = total - planned
+        if progress is not None:
+            progress(done, total)
+        for ocr, run in runs:
+            found = self._read(source, "pdf", run, ocr)
+            for number in run:
+                content = found.get(number)
+                if content is None:
+                    continue
+                body = content.markdown
+                text = texts[number - 1]
+                if has_text[number - 1] and (
+                    not self.layout_text_pages
+                    or letters(body) < MIN_LAYOUT_RATIO * letters(text)
+                ):
+                    body = text  # the layout model dropped text: the layer
+                body += "\n\n" + self._captions(content, budget)
+                bodies[number] = body
+            done += len(run)
+            if progress is not None:
+                progress(done, total)
         pages: Dict[int, str] = {}
         for number, text in enumerate(texts, 1):
-            content = found.get(number)
-            body = content.markdown if content is not None else ""
-            if has_text[number - 1] and (
-                not self.layout_text_pages
-                or letters(body) < MIN_LAYOUT_RATIO * letters(text)
-            ):
-                body = text  # the layout model dropped text: keep the layer
-            if content is not None:
-                body += "\n\n" + self._captions(content, budget)
-            pages[number] = body.strip()
+            read = bodies.get(number)
+            if read is None:
+                read = text if has_text[number - 1] else ""
+            pages[number] = read.strip()
         if not any(pages.values()):
             raise InvalidInputError(
                 "No se encontró texto en el PDF, ni con OCR. / No text "
                 "found in the PDF, not even with OCR."
             )
-        return ExtractedDocument(page_sections(pages), len(texts))
+        return ExtractedDocument(page_sections(pages), total)
 
-    def _image(self, data: bytes, kind: str) -> ExtractedDocument:
+    def _image(self, source: StoredFile, kind: str) -> ExtractedDocument:
         """OCR an image (every frame of a TIFF) and caption the picture."""
         if self.layout is None:
             raise InvalidInputError(NO_OCR_IMAGE)
-        found = self._read(data, kind, None, True)
+        found = self._read(source, kind, None, True)
         pages = {n: c.markdown for n, c in found.items()}
         if self.captioner is not None:
-            note = self._captions(PageContent("", (data,)), [1])
+            picture = Path(source.path).read_bytes()
+            note = self._captions(PageContent("", (picture,)), [1])
             if note:
                 first = min(pages) if pages else 1
                 pages[first] = (pages.get(first, "") + "\n\n" + note).strip()

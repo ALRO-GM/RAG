@@ -1,11 +1,19 @@
-"""In-memory fakes of the knowledge-domain ports."""
+"""In-memory fakes of the knowledge-domain ports.
 
-from typing import Any, Callable, Dict, List, Optional
+Files (originals, partial uploads) are real files in a folder the test
+gives, since the ports hand them over by path.
+"""
+
+import os
+from pathlib import Path
+from typing import Any, Callable, Dict, Iterator, List, Optional
 
 from src.application.knowledge.ports import (
     ExtractedDocument,
     IndexState,
     MediaJob,
+    Progress,
+    StoredFile,
 )
 from src.application.ports import IndexSnapshot
 from src.domain.errors import (
@@ -17,6 +25,7 @@ from src.domain.errors import (
 )
 from src.domain.knowledge.documents import KnowledgeDocument
 from src.domain.knowledge.domains import DomainManifest
+from src.domain.knowledge.uploads import PartialUpload
 from src.domain.models import Chunk, IndexReport, ScoredChunk
 from tests.fakes import make_snapshot
 
@@ -155,13 +164,18 @@ class InMemoryIndexes:
 
 
 class InMemoryDocumentStore:
-    """Documents in dicts; extracted texts become the domain's files."""
+    """Documents in dicts; extracted texts become the domain's files.
 
-    def __init__(self, indexes: InMemoryIndexes) -> None:
+    Originals are moved into ``root`` (``originals`` maps them to their
+    file).
+    """
+
+    def __init__(self, indexes: InMemoryIndexes, root: Path) -> None:
         """Write extracted texts into ``indexes.files``."""
         self.indexes = indexes
+        self.root = root
         self.records: Dict[str, Dict[str, KnowledgeDocument]] = {}
-        self.originals: Dict[tuple[str, str], bytes] = {}
+        self.originals: Dict[tuple[str, str], StoredFile] = {}
 
     def list(self, domain_id: str) -> List[KnowledgeDocument]:
         """Return the documents, oldest first."""
@@ -179,15 +193,29 @@ class InMemoryDocumentStore:
         """Store the record."""
         self.records.setdefault(domain_id, {})[document.id] = document
 
-    def save_original(
-        self, domain_id: str, document: KnowledgeDocument, data: bytes
+    def keep_original(
+        self, domain_id: str, document: KnowledgeDocument, source: StoredFile
     ) -> None:
-        """Keep the bytes."""
-        self.originals[(domain_id, document.id)] = data
+        """Move the file into ``root``."""
+        target = self.root / f"{domain_id}--{document.id}"
+        self.root.mkdir(parents=True, exist_ok=True)
+        os.replace(source.path, target)
+        self.originals[(domain_id, document.id)] = StoredFile(
+            str(target), source.size
+        )
 
-    def original(self, domain_id: str, document: KnowledgeDocument) -> bytes:
-        """Return the bytes."""
-        return self.originals[(domain_id, document.id)]
+    def original(
+        self, domain_id: str, document: KnowledgeDocument
+    ) -> StoredFile:
+        """Return the kept file (``NotFoundError`` if none)."""
+        try:
+            return self.originals[(domain_id, document.id)]
+        except KeyError:
+            raise NotFoundError("no original") from None
+
+    def bytes_of(self, domain_id: str, document_id: str) -> bytes:
+        """Return the bytes of a kept original."""
+        return Path(self.originals[(domain_id, document_id)].path).read_bytes()
 
     def text_path(self, domain_id: str, document_id: str) -> str:
         """Return the indexed name of the text."""
@@ -222,23 +250,107 @@ class InMemoryDocumentStore:
 
 
 class FakeExtractor:
-    """Decode the bytes as text; ``b"FAIL"`` fails, ``b"BAD"`` is refused."""
+    """Decode the file as text; ``b"FAIL"`` fails, ``b"BAD"`` is refused.
 
-    def __init__(self) -> None:
+    ``pages`` > 1 reports that many pages, one at a time, to the
+    progress callback.
+    """
+
+    def __init__(self, pages: int = 1) -> None:
         """Count the extractions."""
         self.extracted = 0
+        self.pages = pages
 
-    def verify(self, data: bytes, document_type: str) -> None:
+    def verify(self, source: StoredFile, document_type: str) -> None:
         """Refuse ``b"BAD..."``."""
-        if data.startswith(b"BAD"):
+        if Path(source.path).read_bytes().startswith(b"BAD"):
             raise UnsupportedDocumentError("not really a docx")
 
-    def extract(self, data: bytes, document_type: str) -> ExtractedDocument:
+    def extract(
+        self, source: StoredFile, document_type: str,
+        progress: Optional[Progress] = None,
+    ) -> ExtractedDocument:
         """Return the text, or fail on ``b"FAIL..."``."""
         self.extracted += 1
+        data = Path(source.path).read_bytes()
         if data.startswith(b"FAIL"):
             raise InvalidInputError("no text in it")
-        return ExtractedDocument(data.decode("utf-8"), pages=1)
+        for done in range(self.pages + 1):
+            if progress is not None:
+                progress(done, self.pages)
+        return ExtractedDocument(data.decode("utf-8"), pages=self.pages)
+
+
+class FakeUploadArea:
+    """Partial uploads as files in ``root``; ``free`` is the free disk."""
+
+    def __init__(self, root: Path, free: int = 10 ** 12) -> None:
+        """Keep the files in ``root``."""
+        self.root = root
+        self.free = free
+        self.records: Dict[str, PartialUpload] = {}
+
+    def _part(self, upload_id: str) -> Path:
+        """Return the file of an upload."""
+        return self.root / f"{upload_id}.part"
+
+    def create(self, upload: PartialUpload) -> None:
+        """Keep the record and an empty file."""
+        self.root.mkdir(parents=True, exist_ok=True)
+        self._part(upload.id).write_bytes(b"")
+        self.records[upload.id] = upload
+
+    def load(self, upload_id: str) -> PartialUpload:
+        """Return the record."""
+        try:
+            return self.records[upload_id]
+        except KeyError:
+            raise NotFoundError(f"No upload {upload_id!r}.") from None
+
+    def save(self, upload: PartialUpload) -> None:
+        """Replace the record."""
+        self.records[upload.id] = upload
+
+    def write(self, upload_id: str, offset: int, data: bytes) -> None:
+        """Write at ``offset``."""
+        self.load(upload_id)
+        with open(self._part(upload_id), "r+b") as handle:
+            handle.seek(offset)
+            handle.write(data)
+
+    def head(self, upload_id: str, size: int) -> bytes:
+        """Return the first bytes."""
+        return self._part(upload_id).read_bytes()[:size]
+
+    def read(self, upload_id: str) -> Iterator[bytes]:
+        """Yield the bytes in pieces of 3 (small, to test the hashing)."""
+        data = self._part(upload_id).read_bytes()
+        for start in range(0, len(data), 3):
+            yield data[start:start + 3]
+
+    def file(self, upload_id: str) -> StoredFile:
+        """Return the file."""
+        part = self._part(upload_id)
+        if not part.is_file():
+            raise NotFoundError(f"No upload {upload_id!r}.")
+        return StoredFile(str(part), part.stat().st_size)
+
+    def discard(self, upload_id: str) -> None:
+        """Delete file and record."""
+        self.drop_file(upload_id)
+        self.records.pop(upload_id, None)
+
+    def drop_file(self, upload_id: str) -> None:
+        """Delete the file."""
+        self._part(upload_id).unlink(missing_ok=True)
+
+    def ids(self) -> List[str]:
+        """Return the ids kept."""
+        return sorted(self.records)
+
+    def free_bytes(self) -> int:
+        """Return :attr:`free`."""
+        return self.free
 
 
 class ManualQueue:
@@ -310,20 +422,22 @@ class FakeMediaTranscriber:
         )
         self.answers: List[Any] = []
         self.submitted: List[tuple[str, int, str, str, float]] = []
+        self.sent: List[bytes] = []
         self.forgotten: List[str] = []
         self.submit_error: Optional[Exception] = None
         self.busy = 0
 
     def submit(
-        self, job_id: str, data: bytes, file_format: str, language: str,
-        max_seconds: float,
+        self, job_id: str, source: StoredFile, file_format: str,
+        language: str, max_seconds: float,
     ) -> MediaJob:
         """Record the file; the job is queued."""
         if self.submit_error is not None:
             error, self.submit_error = self.submit_error, None
             raise error
+        self.sent.append(Path(source.path).read_bytes())
         self.submitted.append(
-            (job_id, len(data), file_format, language, max_seconds)
+            (job_id, source.size, file_format, language, max_seconds)
         )
         return MediaJob("queued")
 

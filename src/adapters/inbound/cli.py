@@ -858,6 +858,7 @@ class RagCLI:
             knowledge=KnowledgeRoutes(
                 app.knowledge_query, app.knowledge_library,
                 app.knowledge_mandatory, app.knowledge_avoid,
+                app.knowledge_uploads,
             ),
             reasoner=skills.reasoner,
             settings=skills.pipeline_settings,
@@ -865,9 +866,11 @@ class RagCLI:
         if token:
             k = app.knowledge_settings
             resumed = app.knowledge_library.recover()
+            swept = self._start_upload_sweep(app)
             print(f"Knowledge: /knowledge/* (domains in {k.domains_dir} "
                   f"and {k.data_dir}; indexes in {k.index_dir}; "
-                  f"{resumed} upload(s) resumed)")
+                  f"{resumed} upload(s) resumed, {swept} abandoned "
+                  f"partial upload(s) deleted)")
             if k.transcriber_url is not None:
                 print(f"Knowledge audio and video: transcribed by "
                       f"{k.transcriber_url} (at most "
@@ -876,6 +879,34 @@ class RagCLI:
             self._start_warm_up(app, skills)
         uvicorn.run(create_app(app.search, app.answers, routes),
                     host=host, port=port)
+
+    @staticmethod
+    def _start_upload_sweep(app: Any, every: float = 3600.0) -> int:
+        """Delete abandoned partial uploads now and every hour after.
+
+        Returns how many were deleted now; the hourly sweep runs in a
+        daemon thread (its failures are logged, never fatal).
+        """
+        import logging
+        import threading
+
+        uploads = app.knowledge_uploads
+        swept: int = uploads.sweep()
+
+        def run() -> None:
+            """Sweep every ``every`` seconds."""
+            while not stop.wait(every):
+                try:
+                    uploads.sweep()
+                except Exception:  # a sweep never takes the server down
+                    logging.getLogger(__name__).exception(
+                        "Sweeping partial uploads failed"
+                    )
+
+        stop = threading.Event()
+        threading.Thread(target=run, name="upload-sweep",
+                         daemon=True).start()
+        return swept
 
     @staticmethod
     def _start_warm_up(app: Any, skills: Any) -> None:

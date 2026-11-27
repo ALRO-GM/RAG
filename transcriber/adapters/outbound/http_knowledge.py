@@ -18,6 +18,7 @@ from urllib.parse import quote
 from transcriber.adapters.outbound.no_redirect import OPENER
 from transcriber.domain.errors import (
     InvalidInputError,
+    NoSpaceError,
     NotFoundError,
     PublishError,
     RagUnavailableError,
@@ -118,7 +119,7 @@ def refusal(
     kinds = {
         400: InvalidInputError, 422: InvalidInputError,
         404: NotFoundError, 409: StateError, 413: TooLargeError,
-        415: UnsupportedMediaError,
+        415: UnsupportedMediaError, 507: NoSpaceError,
     }
     kind = kinds.get(status)
     if kind is None:

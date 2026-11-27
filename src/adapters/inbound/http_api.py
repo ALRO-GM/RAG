@@ -18,7 +18,9 @@ answers a ``knowledge.query.v1`` with a ``knowledge.result.v1`` (PL-8);
 same as NDJSON lines: the model's text pieces as it writes them, then
 the response (VB-2, the voice bot speaks before the reply ends);
 ``/knowledge/domains`` lists, creates and deletes domains and uploads,
-relabels and deletes their documents (``docs/KNOWLEDGE.md``);
+relabels and deletes their documents (``docs/KNOWLEDGE.md``); a large
+file is sent in pieces with resume (``…/uploads``, #282) and
+``GET /knowledge/limits`` says the largest file of each kind;
 ``GET /knowledge/domains/{id}/mandatory`` gives a domain's mandatory
 script items and ``POST /knowledge/mandatory`` tells which of them an
 employee's sentence says (LV-16); ``POST /knowledge/interview/avoid``
@@ -42,6 +44,7 @@ from pydantic import BaseModel, Field, ValidationError
 
 from src.application.answering import AnswerService
 from src.application.knowledge.library import KnowledgeLibrary
+from src.application.knowledge.uploads import DocumentUploads
 from src.application.knowledge.avoid import AvoidQuestions
 from src.application.knowledge.mandatory import MandatoryItems
 from src.application.knowledge.query import KnowledgeQueryService
@@ -59,6 +62,7 @@ from src.domain.errors import (
     BusyError,
     InvalidInputError,
     LimitError,
+    NoSpaceError,
     NotFoundError,
     RagError,
     TooLargeError,
@@ -68,6 +72,7 @@ from src.domain.errors import (
 from src.domain.knowledge.contract import KnowledgeQuery
 from src.domain.knowledge.documents import DocumentMetadata
 from src.domain.knowledge.domains import DomainManifest
+from src.domain.knowledge.uploads import PIECE_BYTES, PartialUpload
 from src.domain.models import MinimalAnswer, MinimalSource
 from src.domain.reasoning.roles import ReasonRequest
 from src.domain.reasoning.templates import get_template
@@ -193,13 +198,16 @@ class KnowledgeRoutes:
     ``query`` answers ``POST /knowledge/query``; ``library`` (optional)
     adds the domain and document routes; ``mandatory`` (optional) the
     mandatory items of a domain and their check (LV-16); ``avoid``
-    (optional) the check of interview questions better avoided (LV-17).
+    (optional) the check of interview questions better avoided (LV-17);
+    ``uploads`` (with ``library``) the uploads of a document, in one
+    request or in pieces (#282).
     """
 
     query: KnowledgeQueryService
     library: Optional[KnowledgeLibrary] = None
     mandatory: Optional[MandatoryItems] = None
     avoid: Optional[AvoidQuestions] = None
+    uploads: Optional[DocumentUploads] = None
 
 
 @dataclass(frozen=True)
@@ -318,19 +326,20 @@ def authorised(header: str, token: str) -> bool:
     ) and scheme.lower() == "bearer"
 
 
-async def read_body(request: Request, limit: int) -> bytes:
-    """Read a request body, refusing it (413) beyond ``limit`` bytes."""
+async def read_body(
+    request: Request, limit: int, detail: str = "Transcript too large."
+) -> bytes:
+    """Read a request body, refusing it (413, ``detail``) beyond ``limit``
+    bytes."""
     declared = request.headers.get("content-length", "")
     if declared.isdigit() and int(declared) > limit:
-        raise HTTPException(status_code=413, detail="Transcript too large.")
+        raise HTTPException(status_code=413, detail=detail)
     chunks: List[bytes] = []
     size = 0
     async for chunk in request.stream():
         size += len(chunk)
         if size > limit:
-            raise HTTPException(
-                status_code=413, detail="Transcript too large."
-            )
+            raise HTTPException(status_code=413, detail=detail)
         chunks.append(chunk)
     return b"".join(chunks)
 
@@ -623,6 +632,8 @@ def mount_knowledge(
         mount_avoid(app, routes.avoid, guard)
     if routes.library is not None:
         mount_library(app, routes.library, guard)
+        if routes.uploads is not None:
+            mount_uploads(app, routes.uploads, guard)
 
 
 def mount_mandatory(
@@ -778,10 +789,11 @@ def _line(item: Dict[str, Any]) -> str:
 
 
 def knowledge_error(exc: RagError) -> HTTPException:
-    """Map a knowledge error: 404, 409, 413, 415, 422 or 500."""
+    """Map a knowledge error: 404, 409, 413, 415, 422, 507 or 500."""
     for kind, status in (
         (UnsupportedDocumentError, 415), (TooLargeError, 413),
         (InvalidInputError, 422), (NotFoundError, 404), (BusyError, 409),
+        (NoSpaceError, 507),
     ):
         if isinstance(exc, kind):
             return HTTPException(status_code=status, detail=str(exc))
@@ -797,57 +809,35 @@ async def read_model(request: Request, model: Any) -> Any:
         raise HTTPException(status_code=422, detail=short_reason(exc))
 
 
-async def read_upload(
-    request: Request, limit: int
-) -> tuple[str, bytes, DocumentMetadata]:
-    """Read ``file`` and the optional ``metadata`` (JSON) of a multipart.
+class NewUpload(BaseModel):
+    """Body of ``POST …/uploads``: the file announced."""
 
-    ``413`` beyond ``limit`` bytes of file, ``422`` without a file or
-    with metadata that is not valid.
+    model_config = {"extra": "forbid"}
+
+    name: str = Field(min_length=1, max_length=1000)
+    size: int = Field(ge=0)
+    metadata: DocumentMetadata = Field(default_factory=DocumentMetadata)
+
+
+def upload_parts(form: Any) -> tuple[UploadFile, DocumentMetadata]:
+    """Return the ``file`` and the optional ``metadata`` of a multipart.
+
+    ``422`` without a file or with metadata that is not valid.
     """
-    declared = request.headers.get("content-length", "")
-    if declared.isdigit() and int(declared) > limit + MULTIPART_OVERHEAD:
-        raise HTTPException(status_code=413, detail=(
-            f"El archivo supera {limit} bytes. / The file is larger than "
-            f"{limit} bytes."
-        ))
-    if not request.headers.get("content-type", "").startswith(
-        "multipart/form-data"
-    ):
+    upload = form.get("file")
+    if not isinstance(upload, UploadFile):
         raise HTTPException(status_code=422,
-                            detail="Send multipart/form-data.")
-    try:
-        form = await request.form(
-            max_files=1, max_fields=4, max_part_size=KNOWLEDGE_JSON_MAX_BYTES
-        )
-    except HTTPException:
-        raise
-    except Exception as exc:  # malformed multipart
+                            detail="The field 'file' is missing.")
+    raw = form.get("metadata")
+    if raw is not None and not isinstance(raw, str):
         raise HTTPException(status_code=422,
-                            detail=f"Invalid multipart body ({exc}).")
+                            detail="'metadata' must be JSON text.")
     try:
-        upload = form.get("file")
-        if not isinstance(upload, UploadFile):
-            raise HTTPException(status_code=422,
-                                detail="The field 'file' is missing.")
-        data = await upload.read(limit + 1)
-        if len(data) > limit:
-            raise HTTPException(status_code=413, detail=(
-                f"El archivo supera {limit} bytes. / The file is larger "
-                f"than {limit} bytes."
-            ))
-        raw = form.get("metadata")
-        if raw is not None and not isinstance(raw, str):
-            raise HTTPException(status_code=422,
-                                detail="'metadata' must be JSON text.")
-        try:
-            metadata = DocumentMetadata.model_validate_json(raw or "{}")
-        except ValidationError as exc:
-            raise HTTPException(status_code=422,
-                                detail=f"metadata: {short_reason(exc)}")
-        return upload.filename or "", data, metadata
-    finally:
-        await form.close()
+        metadata = DocumentMetadata.model_validate_json(raw or "{}")
+    except ValidationError as exc:
+        raise HTTPException(status_code=422,
+                            detail=f"metadata: {short_reason(exc)}")
+    return upload, metadata
 
 
 def mount_library(
@@ -894,23 +884,6 @@ def mount_library(
         documents = await call(library.documents, domain_id)
         return [d.model_dump(mode="json") for d in documents]
 
-    @app.post("/knowledge/domains/{domain_id}/documents",
-              dependencies=guard, status_code=202)
-    async def upload_document(
-        domain_id: str, request: Request
-    ) -> Dict[str, Any]:
-        """Accept a file (multipart ``file`` + optional ``metadata``).
-
-        ``202`` with the document, status ``queued``: extraction,
-        chunking and embedding run in the background.
-        """
-        name, data, metadata = await read_upload(
-            request, library.max_upload_bytes
-        )
-        document = await call(library.upload, domain_id, name, data,
-                              metadata)
-        return dict(document.model_dump(mode="json"))
-
     @app.get("/knowledge/domains/{domain_id}/documents/{doc_id}/text",
              dependencies=guard)
     async def document_text(domain_id: str, doc_id: str) -> Dict[str, Any]:
@@ -939,4 +912,168 @@ def mount_library(
     async def delete_document(domain_id: str, doc_id: str) -> Response:
         """Delete a document; its chunks leave the index in background."""
         await call(library.delete, domain_id, doc_id)
+        return Response(status_code=204)
+
+
+def bounded(request: Request, limit: int) -> Request:
+    """Return ``request`` whose body is refused (413) past ``limit`` bytes.
+
+    Counted as it arrives, so a body without ``Content-Length`` (chunked)
+    cannot be spooled without end either.
+    """
+    receive = request.receive
+    seen = [0]
+
+    async def counted() -> Any:
+        """Pass a message on, counting the body bytes."""
+        message = await receive()
+        if message.get("type") == "http.request":
+            seen[0] += len(message.get("body", b""))
+            if seen[0] > limit:
+                raise HTTPException(status_code=413, detail=(
+                    f"El archivo supera {limit} bytes. / The file is "
+                    f"larger than {limit} bytes."
+                ))
+        return message
+
+    return Request(request.scope, counted)
+
+
+def mount_uploads(
+    app: FastAPI, uploads: DocumentUploads, guard: List[Any]
+) -> None:
+    """Add the upload routes: one request, or pieces with resume (#282).
+
+    ``GET /knowledge/limits`` says the largest file of each kind and
+    the piece size, so the page keeps no copy of the numbers.
+    """
+    library = uploads.library
+
+    async def call(func: Any, *args: Any) -> Any:
+        """Run a use case in the thread pool, mapping its errors."""
+        try:
+            return await run_in_threadpool(func, *args)
+        except RagError as exc:
+            raise knowledge_error(exc)
+
+    @app.get("/knowledge/limits", dependencies=guard)
+    async def limits() -> Dict[str, Any]:
+        """The largest file of each kind, the piece size, the longest
+        recording (``null``: audio and video are refused)."""
+        media = library.media
+        return {
+            **library.limits.model_dump(),
+            "piece_bytes": PIECE_BYTES,
+            "max_media_seconds": (
+                media.max_seconds if media is not None else None
+            ),
+        }
+
+    @app.post("/knowledge/domains/{domain_id}/documents",
+              dependencies=guard, status_code=202)
+    async def upload_document(
+        domain_id: str, request: Request
+    ) -> Dict[str, Any]:
+        """Accept a file in one request (multipart ``file`` + optional
+        ``metadata``).
+
+        ``202`` with the document, status ``queued``: extraction,
+        chunking and embedding run in the background. The multipart is
+        spooled to a temporary file by the server (in the system's temp
+        folder; its body counted as it arrives and refused past the
+        largest limit), then read a piece at a time; large files are
+        better sent in pieces (below).
+        """
+        largest = library.limits.largest
+        declared = request.headers.get("content-length", "")
+        if declared.isdigit() and int(declared) > largest + \
+                MULTIPART_OVERHEAD:
+            raise HTTPException(status_code=413, detail=(
+                f"El archivo supera {largest} bytes. / The file is larger "
+                f"than {largest} bytes."
+            ))
+        if not request.headers.get("content-type", "").startswith(
+            "multipart/form-data"
+        ):
+            raise HTTPException(status_code=422,
+                                detail="Send multipart/form-data.")
+        try:
+            form = await bounded(request, largest + MULTIPART_OVERHEAD).form(
+                max_files=1, max_fields=4,
+                max_part_size=KNOWLEDGE_JSON_MAX_BYTES,
+            )
+        except HTTPException:
+            raise
+        except Exception as exc:  # malformed multipart
+            raise HTTPException(status_code=422,
+                                detail=f"Invalid multipart body ({exc}).")
+        try:
+            upload, metadata = upload_parts(form)
+            document = await call(
+                uploads.receive, domain_id, upload.filename or "",
+                upload.size or 0, upload.file.read, metadata,
+            )
+        finally:
+            await form.close()
+        return dict(document.model_dump(mode="json"))
+
+    @app.post("/knowledge/domains/{domain_id}/uploads", dependencies=guard,
+              status_code=201)
+    async def start_upload(
+        domain_id: str, request: Request
+    ) -> Dict[str, Any]:
+        """Announce a file to send in pieces (``{"name", "size",
+        "metadata"}``); ``201`` with the upload (``id``, ``received``)."""
+        body = await read_model(request, NewUpload)
+        upload: PartialUpload = await call(
+            uploads.start, domain_id, body.name, body.size, body.metadata
+        )
+        return upload.view()
+
+    @app.get("/knowledge/domains/{domain_id}/uploads/{upload_id}",
+             dependencies=guard)
+    async def upload_status(domain_id: str, upload_id: str) -> Dict[str, Any]:
+        """How much of the file arrived (to resume after a cut)."""
+        upload: PartialUpload = await call(
+            uploads.status, domain_id, upload_id
+        )
+        return upload.view()
+
+    @app.put(
+        "/knowledge/domains/{domain_id}/uploads/{upload_id}/pieces/{offset}",
+        dependencies=guard,
+    )
+    async def put_piece(
+        domain_id: str, upload_id: str, offset: int, request: Request
+    ) -> Dict[str, Any]:
+        """Write one piece (raw body) at byte ``offset``.
+
+        ``409`` when it would leave a gap (ask the status and go on
+        from ``received``); a piece already received is accepted again.
+        """
+        data = await read_body(request, PIECE_BYTES, detail=(
+            f"Una parte no puede pasar de {PIECE_BYTES} bytes. / A piece "
+            f"may not be larger than {PIECE_BYTES} bytes."
+        ))
+        upload: PartialUpload = await call(
+            uploads.put, domain_id, upload_id, offset, data
+        )
+        return upload.view()
+
+    @app.post(
+        "/knowledge/domains/{domain_id}/uploads/{upload_id}/complete",
+        dependencies=guard, status_code=202,
+    )
+    async def complete_upload(
+        domain_id: str, upload_id: str
+    ) -> Dict[str, Any]:
+        """Turn the received file into a document (``202``, ``queued``)."""
+        document = await call(uploads.complete, domain_id, upload_id)
+        return dict(document.model_dump(mode="json"))
+
+    @app.delete("/knowledge/domains/{domain_id}/uploads/{upload_id}",
+                dependencies=guard, status_code=204)
+    async def cancel_upload(domain_id: str, upload_id: str) -> Response:
+        """Cancel an upload; what arrived of it is deleted."""
+        await call(uploads.cancel, domain_id, upload_id)
         return Response(status_code=204)

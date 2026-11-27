@@ -25,6 +25,10 @@ class TooLargeError(InvalidInputError):
     """An upload is larger than allowed."""
 
 
+class NoSpaceError(RagError):
+    """The disk would not hold an upload (plus the margin kept free)."""
+
+
 class NotFoundError(RagError):
     """A required file, directory or index does not exist."""
 

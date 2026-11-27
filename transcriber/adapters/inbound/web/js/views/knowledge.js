@@ -8,13 +8,14 @@ import { h, fill, keepFocus } from "../dom.js";
 import { t, lang, decimal } from "../i18n.js";
 import { describeError } from "../errors.js";
 import {
-  ACCEPT, CATEGORIES, MODES, countByStatus, extensionOf, formatBytes, isDomainId, isMedia, KnowledgeModel, parseTags, slugify,
-  timeRange,
+  ACCEPT, CATEGORIES, MODES, countByStatus, extensionOf, formatBytes, isDomainId, isMedia, KnowledgeModel, limitText, parseTags,
+  percentOf, slugify, timeRange,
 } from "../lib/knowledge.js";
 import { emptyState, icon, openDialog, pageHead, toast } from "../ui.js";
 
 /** Plain-language text for a failed knowledge call (the server's message for a refused request). */
 function knowledgeError(error) {
+  if (error?.status === 507) return error.message || t("kn.err_space");
   if (error?.code === "unsupported_format") return t("kn.err_format");
   if (error?.code === "not_found") return t("kn.err_not_found");
   const base = describeError(error);
@@ -171,6 +172,7 @@ export async function knowledgeView(ctx, root, [wanted = null] = []) {
       h("span", {}, t("kn.drop_body")),
       h("span", { class: "formats" }, t("kn.drop_formats")),
       h("span", { class: "formats" }, t("kn.drop_media")),
+      limitsLine(),
       input);
     const send = (files) => { if (files.length) model.addFiles(files, metadata.value()); };
     input.addEventListener("change", () => {
@@ -194,16 +196,55 @@ export async function knowledgeView(ctx, root, [wanted = null] = []) {
         h("p", { class: "hint" }, t("kn.upload_metadata_hint")), metadata.element));
   }
 
+  /** «Up to 500 MB a PDF, 1 GB a video…», from the server's limits (nothing before they are read). */
+  function limitsLine() {
+    const limits = model.state.limits;
+    if (!limits) return null;
+    const minutes = Number(limits.max_media_seconds) > 0 ? Math.round(limits.max_media_seconds / 60) : null;
+    return h("span", { class: "formats" }, t(minutes ? "kn.drop_limits_media" : "kn.drop_limits", {
+      pdf: limitText(limits.pdf, lang), video: limitText(limits.video, lang), audio: limitText(limits.audio, lang),
+      document: limitText(limits.document, lang), minutes,
+    }));
+  }
+
+  function rejectText(item) {
+    if (item.reason === "size" && item.limit) {
+      return t(`kn.reject.size_${item.kind}`, { limit: limitText(item.limit, lang), size: limitText(item.size, lang) });
+    }
+    return t(`kn.reject.${item.reason}`);
+  }
+
+  function progressText(item) {
+    if (item.finishing) return t("kn.upload.finishing");
+    return t("kn.upload.progress", {
+      sent: formatBytes(item.sent, lang), total: formatBytes(item.size, lang), percent: percentOf(item.sent, item.size),
+    });
+  }
+
   function uploadRow(item) {
     const states = { waiting: "waiting", uploading: "uploading", rejected: "failed", failed: "failed" };
-    const why = item.state === "rejected" ? t(`kn.reject.${item.reason}`) : item.error ? knowledgeError(item.error) : null;
+    const why = item.state === "rejected" ? rejectText(item) : item.error ? knowledgeError(item.error) : null;
+    const inPieces = item.state === "uploading" && item.piece;
+    const cancellable = item.state === "waiting" || inPieces;
     return h("li", { class: "kn-file" },
       h("span", { class: "type", "aria-hidden": "true" }, extensionOf(item.name) || "?"),
       h("span", { class: "name", title: item.name }, item.name),
       h("span", { class: `badge is-${states[item.state]}` }, t(`kn.upload.${item.state}`)),
-      h("span", { class: "meta" }, formatBytes(item.size, lang)),
-      item.state === "uploading" ? h("progress", { "aria-label": t("kn.upload.uploading_named", { name: item.name }) }) : null,
+      h("span", { class: "meta" }, inPieces ? progressText(item) : formatBytes(item.size, lang)),
+      item.state === "uploading"
+        ? h("progress", {
+          "aria-label": t("kn.upload.uploading_named", { name: item.name }),
+          ...(inPieces ? { max: item.size, value: item.sent } : {}),
+        })
+        : null,
+      inPieces && item.retrying ? h("p", { class: "hint", role: "status" }, t("kn.upload.retrying")) : null,
+      inPieces && item.restarted ? h("p", { class: "hint", role: "status" }, t("kn.upload.restarted")) : null,
+      item.state === "failed" && item.uploadId ? h("p", { class: "hint" }, t("kn.upload.resume_hint")) : null,
       why ? h("p", { class: "error" }, why) : null,
+      cancellable
+        ? h("div", { class: "actions" },
+          h("button", { type: "button", class: "small ghost", "data-focus-key": `up:${item.key}:cancel`, onClick: () => model.cancelUpload(item.key), "aria-label": t("kn.upload.cancel_named", { name: item.name }) }, t("action.cancel")))
+        : null,
       item.state === "rejected" || item.state === "failed"
         ? h("div", { class: "actions" },
           item.state === "failed" ? h("button", { type: "button", class: "small", "data-focus-key": `up:${item.key}:retry`, onClick: () => model.retryUpload(item.key) }, t("action.retry")) : null,
@@ -224,7 +265,15 @@ export async function knowledgeView(ctx, root, [wanted = null] = []) {
       h("span", { class: "name", title: doc.name }, doc.name),
       statusBadge(doc.status, media),
       h("span", { class: "meta" }, facts),
-      doc.status === "processing" ? h("progress", { "aria-label": t(media ? "kn.status.transcribing" : "kn.status.processing") }) : null,
+      doc.status === "processing" && doc.pages && Number.isFinite(doc.pages_done)
+        ? h("p", { class: "hint", role: "status" }, t("kn.pages_done", { done: doc.pages_done, total: doc.pages }))
+        : null,
+      doc.status === "processing"
+        ? h("progress", {
+          "aria-label": t(media ? "kn.status.transcribing" : "kn.status.processing"),
+          ...(doc.pages && Number.isFinite(doc.pages_done) ? { max: doc.pages, value: doc.pages_done } : {}),
+        })
+        : null,
       media && isPendingStatus(doc.status) ? h("p", { class: "hint" }, t("kn.media_wait")) : null,
       doc.status === "failed" ? h("p", { class: "error" }, doc.error || t("kn.failed_no_reason")) : null,
       metadataChips(doc.metadata),

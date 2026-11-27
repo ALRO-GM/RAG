@@ -6,7 +6,7 @@ import tracemalloc
 import wave
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterator, List
+from typing import Any, Iterator, List
 
 import numpy as np
 import pytest
@@ -412,6 +412,53 @@ class TestImportedAudio:
         names = sorted(p.name for p in folder.iterdir())
         assert names == ["imported.flac", "session.json"]
         assert repo.recording("s1") == RecordedAudio(b"flac bytes", "flac")
+
+    def test_a_large_file_is_moved_in_and_handed_over_by_path(
+        self, tmp_path: Path
+    ) -> None:
+        """#282: a file given by path is renamed in; over ``inline_bytes``
+        it comes back by path with its digest, never read whole."""
+        import hashlib
+
+        repo = FileSystemSessionRepository(tmp_path, inline_bytes=4)
+        repo.create(session(state=SessionState.UPLOADED))
+        incoming = tmp_path / "incoming.part"
+        incoming.write_bytes(b"large video bytes")
+        repo.store_recording(
+            "s1", RecordedAudio(b"", "mp4", path=str(incoming))
+        )
+        assert not incoming.exists()
+        stored = tmp_path / "sessions" / "s1" / "imported.mp4"
+        assert stored.read_bytes() == b"large video bytes"
+        assert repo.recording("s1") == RecordedAudio(
+            b"", "mp4", path=str(stored),
+            sha256=hashlib.sha256(b"large video bytes").hexdigest(),
+        )
+        repo.store_recording("s1", RecordedAudio(b"tiny", "wav"))
+        assert repo.recording("s1") == RecordedAudio(b"tiny", "wav")
+
+    def test_a_move_across_disks_copies_then_deletes(
+        self, repo: FileSystemSessionRepository, tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """When the rename fails (another disk) the file is copied."""
+        import os
+
+        real = os.replace
+
+        def cross_device(source: Any, target: Any) -> None:
+            """Refuse to rename the incoming file, as across disks."""
+            if str(source).endswith("elsewhere.part"):
+                raise OSError(18, "Invalid cross-device link")
+            real(source, target)
+
+        monkeypatch.setattr(os, "replace", cross_device)
+        repo.create(session(state=SessionState.UPLOADED))
+        source = tmp_path / "elsewhere.part"
+        source.write_bytes(b"bytes")
+        repo.store_recording("s1", RecordedAudio(b"", "m4a", path=str(source)))
+        assert not source.exists()
+        assert repo.recording("s1") == RecordedAudio(b"bytes", "m4a")
 
     def test_imports_stored_by_earlier_versions_are_still_read(
         self, repo: FileSystemSessionRepository, tmp_path: Path

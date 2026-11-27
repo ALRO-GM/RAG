@@ -254,7 +254,7 @@ class ImportRecording:
         together: if the audio cannot be stored the new session is
         removed again, so the same id can be used for another try.
         """
-        if not recording.data:
+        if recording.empty:
             raise InvalidInputError("The recording is empty.")
         if not recording.format.strip():
             raise InvalidInputError("The recording needs a format.")
