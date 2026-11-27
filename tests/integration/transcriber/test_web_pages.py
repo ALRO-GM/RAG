@@ -342,7 +342,7 @@ def dictionary_keys(language: str) -> Set[str]:
 
 
 @pytest.mark.parametrize(
-    "page", ["index.html", "research.html", "study.html", "competition.html"]
+    "page", ["index.html", "research.html", "study.html", "info.html"]
 )
 def test_every_page_has_the_language_switch(page: str) -> None:
     """ES | EN buttons in the header; the header and title translatable."""
@@ -384,7 +384,7 @@ def test_the_chosen_language_is_kept_safely() -> None:
 
 
 @pytest.mark.parametrize(
-    "page", ["index.html", "research.html", "study.html", "competition.html"]
+    "page", ["index.html", "research.html", "study.html", "info.html"]
 )
 def test_every_page_links_to_the_study(page: str) -> None:
     """The study page is reachable from the header of every page."""
@@ -397,7 +397,7 @@ def test_every_page_links_to_the_study(page: str) -> None:
 @pytest.mark.parametrize(
     "page,module",
     [("study.html", "js/study.js"), ("research.html", "js/research/main.js"),
-     ("competition.html", "js/competition.js")],
+     ("info.html", "js/competition.js")],
 )
 def test_the_standalone_pages_carry_the_share(page: str, module: str) -> None:
     """#284: «Compartir pantalla» on the pages that are other documents:
