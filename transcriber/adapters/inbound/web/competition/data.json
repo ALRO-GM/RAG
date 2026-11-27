@@ -1,0 +1,793 @@
+{
+ "schema": "competition.v1",
+ "updated": "2026-11-27",
+ "note": "Hand-kept. How to update each part and where every figure comes from: docs/web/COMPETITION_PAGE.md.",
+ "sources": {
+  "anthropic_pricing": {
+   "label": "Anthropic, Pricing",
+   "url": "https://platform.claude.com/docs/en/about-claude/pricing",
+   "seen": "2026-11-27"
+  },
+  "talkdesk": {
+   "label": "Talkdesk, Pricing",
+   "url": "https://www.talkdesk.com/pricing/",
+   "seen": "2026-11-27"
+  },
+  "nice": {
+   "label": "NICE, Pricing",
+   "url": "https://www.nice.com/pricing",
+   "seen": "2026-11-27"
+  },
+  "five9": {
+   "label": "Five9, Pricing",
+   "url": "https://www.five9.com/pricing",
+   "seen": "2026-11-27"
+  },
+  "twilio": {
+   "label": "Twilio Flex, Pricing",
+   "url": "https://www.twilio.com/en-us/flex/pricing",
+   "seen": "2026-11-27"
+  },
+  "cresta": {
+   "label": "AWS Marketplace, Cresta",
+   "url": "https://aws.amazon.com/marketplace/pp/prodview-lmdwown6xoo6q",
+   "seen": "2026-11-27"
+  },
+  "observe": {
+   "label": "AWS Marketplace, Observe.AI Real-Time AI",
+   "url": "https://aws.amazon.com/marketplace/pp/prodview-lgvu5s7gueesi",
+   "seen": "2026-11-27"
+  },
+  "brighthire": {
+   "label": "BrightHire, Pricing",
+   "url": "https://brighthire.com/pricing/",
+   "seen": "2026-11-27"
+  },
+  "hirevue": {
+   "label": "HireVue, Pricing",
+   "url": "https://www.hirevue.com/pricing",
+   "seen": "2026-11-27"
+  },
+  "metaview": {
+   "label": "Metaview, Pricing",
+   "url": "https://www.metaview.ai/pricing",
+   "seen": "2026-11-27"
+  },
+  "retell": {
+   "label": "Retell AI, Pricing",
+   "url": "https://www.retellai.com/pricing",
+   "seen": "2026-11-27"
+  },
+  "vapi": {
+   "label": "Vapi, Pricing",
+   "url": "https://vapi.ai/pricing",
+   "seen": "2026-11-27"
+  },
+  "polyai": {
+   "label": "PolyAI, Pricing",
+   "url": "https://poly.ai/pricing/",
+   "seen": "2026-11-27"
+  },
+  "haiku_latency": {
+   "label": "docs/live/HAIKU_LATENCY.md",
+   "url": "https://github.com/ALRO-GM/RAG/blob/main/docs/live/HAIKU_LATENCY.md"
+  },
+  "haiku_latency_script": {
+   "label": "experiments/live/haiku_latency.py",
+   "url": "https://github.com/ALRO-GM/RAG/blob/main/experiments/live/haiku_latency.py"
+  },
+  "live_measures": {
+   "label": "docs/live/LIVE_MEASURES.md §1",
+   "url": "https://github.com/ALRO-GM/RAG/blob/main/docs/live/LIVE_MEASURES.md#1-end-to-end-latency-lv-12-173"
+  },
+  "query_latency": {
+   "label": "experiments/knowledge/QUERY_LATENCY.md",
+   "url": "https://github.com/ALRO-GM/RAG/blob/main/experiments/knowledge/QUERY_LATENCY.md"
+  },
+  "seed_support": {
+   "label": "knowledge/domains/support.demo",
+   "url": "https://github.com/ALRO-GM/RAG/tree/main/knowledge/domains/support.demo"
+  },
+  "seed_interview": {
+   "label": "knowledge/domains/interview.generic",
+   "url": "https://github.com/ALRO-GM/RAG/tree/main/knowledge/domains/interview.generic"
+  },
+  "knowledge": {
+   "label": "docs/KNOWLEDGE.md",
+   "url": "https://github.com/ALRO-GM/RAG/blob/main/docs/KNOWLEDGE.md"
+  },
+  "acts": {
+   "label": "docs/skills/DIALOGUE_ACT_TAGGER.md",
+   "url": "https://github.com/ALRO-GM/RAG/blob/main/docs/skills/DIALOGUE_ACT_TAGGER.md"
+  },
+  "interviewer": {
+   "label": "docs/live/VOICEBOT_INTERVIEWER.md",
+   "url": "https://github.com/ALRO-GM/RAG/blob/main/docs/live/VOICEBOT_INTERVIEWER.md"
+  },
+  "candidate": {
+   "label": "docs/live/CANDIDATE_PROFILE.md",
+   "url": "https://github.com/ALRO-GM/RAG/blob/main/docs/live/CANDIDATE_PROFILE.md"
+  },
+  "mandatory": {
+   "label": "docs/live/MANDATORY_ITEMS.md",
+   "url": "https://github.com/ALRO-GM/RAG/blob/main/docs/live/MANDATORY_ITEMS.md"
+  },
+  "live_session": {
+   "label": "docs/live/LIVE_SESSION.md",
+   "url": "https://github.com/ALRO-GM/RAG/blob/main/docs/live/LIVE_SESSION.md"
+  },
+  "page_doc": {
+   "label": "docs/web/COMPETITION_PAGE.md",
+   "url": "https://github.com/ALRO-GM/RAG/blob/main/docs/web/COMPETITION_PAGE.md"
+  },
+  "live_asr": {
+   "label": "docs/live/LIVE_ASR.md",
+   "url": "https://github.com/ALRO-GM/RAG/blob/main/docs/live/LIVE_ASR.md"
+  },
+  "mono": {
+   "label": "docs/live/MONO_DIARIZATION.md",
+   "url": "https://github.com/ALRO-GM/RAG/blob/main/docs/live/MONO_DIARIZATION.md"
+  },
+  "assist_modes": {
+   "label": "docs/live/ASSIST_MODES.md",
+   "url": "https://github.com/ALRO-GM/RAG/blob/main/docs/live/ASSIST_MODES.md"
+  },
+  "settings": {
+   "label": "docs/SETTINGS.md",
+   "url": "https://github.com/ALRO-GM/RAG/blob/main/docs/SETTINGS.md"
+  },
+  "voicebot": {
+   "label": "docs/live/VOICEBOT.md",
+   "url": "https://github.com/ALRO-GM/RAG/blob/main/docs/live/VOICEBOT.md"
+  }
+ },
+ "steps": [
+  {
+   "id": "docs",
+   "rag": false,
+   "title": {
+    "es": "1. Subes tus documentos",
+    "en": "1. You upload your documents"
+   },
+   "body": {
+    "es": "PDF, Word, hojas de cálculo, imágenes, audio y vídeo.",
+    "en": "PDF, Word, spreadsheets, images, audio and video."
+   }
+  },
+  {
+   "id": "library",
+   "rag": false,
+   "title": {
+    "es": "2. Se guardan por temas",
+    "en": "2. They are kept by topic"
+   },
+   "body": {
+    "es": "Una oferta de empleo se convierte en un plan de entrevista que revisas. Los manuales y normas quedan como material para las llamadas.",
+    "en": "A job offer becomes an interview plan you review. Manuals and rules become the material for calls."
+   }
+  },
+  {
+   "id": "live",
+   "rag": true,
+   "title": {
+    "es": "3. Ayuda durante la conversación",
+    "en": "3. Help during the conversation"
+   },
+   "body": {
+    "es": "La voz se pasa a texto, se buscan los trozos de tus documentos que vienen al caso y aparece qué decir o qué falta por preguntar.",
+    "en": "Speech becomes text, the parts of your documents that matter are looked up, and the screen shows what to say or what is still to ask."
+   }
+  },
+  {
+   "id": "report",
+   "rag": true,
+   "title": {
+    "es": "4. Informe al terminar",
+    "en": "4. Report at the end"
+   },
+   "body": {
+    "es": "Qué se habló, qué faltó y qué conviene comprobar.",
+    "en": "What was covered, what was missing and what is worth checking."
+   }
+  }
+ ],
+ "rag_uses": {
+  "yes": [
+   {
+    "es": "Ayuda en directo en llamadas de atención",
+    "en": "Live help in support calls"
+   },
+   {
+    "es": "Ayuda en directo al entrevistador",
+    "en": "Live help for the interviewer"
+   },
+   {
+    "es": "Asistente de voz y entrevistador de voz",
+    "en": "Voice assistant and voice interviewer"
+   },
+   {
+    "es": "Plan de entrevista a partir de la oferta",
+    "en": "Interview plan from the job offer"
+   },
+   {
+    "es": "Informe de la entrevista",
+    "en": "Interview report"
+   }
+  ],
+  "no": [
+   {
+    "es": "Lista de «lo que hay que decir» (se compara frase a frase)",
+    "en": "«What must be said» list (compared sentence by sentence)"
+   },
+   {
+    "es": "Preguntas que es mejor evitar (lista fija con su base legal)",
+    "en": "Questions better avoided (a fixed list with its legal basis)"
+   },
+   {
+    "es": "Análisis de habilidades tras la llamada",
+    "en": "Skills analysis after the call"
+   }
+  ]
+ },
+ "rag": {
+  "price": {
+   "source": "anthropic_pricing",
+   "model": "Claude Haiku 5.5",
+   "input_per_mtok": 0.1,
+   "output_per_mtok": 0.5,
+   "long_prompt_tokens": 100000,
+   "long_input_per_mtok": 0.5,
+   "long_output_per_mtok": 2.5
+  },
+  "prompt_tokens": 1750,
+  "prompt_source": "haiku_latency",
+  "knowledge_tokens_in_prompt": 250,
+  "knowledge_source": "haiku_latency_script",
+  "output_tokens": 90,
+  "answers": 1000,
+  "search_ms": [
+   9,
+   27
+  ],
+  "model_s": [
+   1.26,
+   2.18
+  ],
+  "timing_source": "live_measures",
+  "libraries": [
+   {
+    "id": "support",
+    "tokens": 3100,
+    "source": "seed_support",
+    "label": {
+     "es": "Documentos de ejemplo de atención al cliente",
+     "en": "Sample customer-service documents"
+    }
+   },
+   {
+    "id": "interview",
+    "tokens": 12300,
+    "source": "seed_interview",
+    "label": {
+     "es": "Documentos de ejemplo de entrevistas",
+     "en": "Sample interview documents"
+    }
+   },
+   {
+    "id": "large",
+    "tokens": 257500,
+    "source": "query_latency",
+    "label": {
+     "es": "Biblioteca de 1.030 trozos (como la de la prueba de búsqueda)",
+     "en": "A library of 1,030 pieces (like the one in the search test)"
+    }
+   }
+  ],
+  "acts": {
+   "source": "acts",
+   "sentences": 140,
+   "without": 0.743,
+   "with": 0.864
+  }
+ },
+ "models": [
+  {
+   "id": "asr",
+   "where": "local",
+   "phase": {
+    "es": "Pasar la voz a texto",
+    "en": "Speech to text"
+   },
+   "model": {
+    "es": "Whisper large-v3-turbo",
+    "en": "Whisper large-v3-turbo"
+   },
+   "source": "live_asr"
+  },
+  {
+   "id": "speakers",
+   "where": "local",
+   "phase": {
+    "es": "Saber quién habla",
+    "en": "Who is speaking"
+   },
+   "model": {
+    "es": "Un canal por persona o, con un solo micrófono, Sortformer (NVIDIA); grabaciones: DiariZen",
+    "en": "One channel per person or, with one microphone, Sortformer (NVIDIA); recordings: DiariZen"
+   },
+   "source": "mono"
+  },
+  {
+   "id": "read",
+   "where": "local",
+   "phase": {
+    "es": "Leer documentos e imágenes",
+    "en": "Read documents and images"
+   },
+   "model": {
+    "es": "Docling y RapidOCR; Florence-2 para describir figuras",
+    "en": "Docling and RapidOCR; Florence-2 to describe figures"
+   },
+   "source": "knowledge"
+  },
+  {
+   "id": "search",
+   "where": "local",
+   "phase": {
+    "es": "Buscar en tus documentos (RAG) y comprobar «lo que hay que decir»",
+    "en": "Search your documents (RAG) and check «what must be said»"
+   },
+   "model": {
+    "es": "MiniLM multilingüe más búsqueda por palabras",
+    "en": "Multilingual MiniLM plus word search"
+   },
+   "source": "knowledge"
+  },
+  {
+   "id": "assist",
+   "where": "external",
+   "phase": {
+    "es": "Ayuda en directo, asistente de voz, plan e informe de entrevista",
+    "en": "Live help, voice assistant, interview plan and report"
+   },
+   "model": {
+    "es": "Claude Haiku (Anthropic)",
+    "en": "Claude Haiku (Anthropic)"
+   },
+   "source": "assist_modes"
+  },
+  {
+   "id": "analysis",
+   "where": "both",
+   "phase": {
+    "es": "Análisis de habilidades tras la llamada",
+    "en": "Skills analysis after the call"
+   },
+   "model": {
+    "es": "Claude Opus (Anthropic) por defecto; o Qwen3 en el servidor propio",
+    "en": "Claude Opus (Anthropic) by default; or Qwen3 on your own server"
+   },
+   "source": "settings"
+  },
+  {
+   "id": "acts",
+   "where": "local",
+   "phase": {
+    "es": "Tipo de cada frase (actos del lenguaje)",
+    "en": "Type of each sentence (speech acts)"
+   },
+   "model": {
+    "es": "XLM-R afinado con frases en español",
+    "en": "XLM-R fine-tuned on Spanish sentences"
+   },
+   "source": "acts"
+  },
+  {
+   "id": "voice",
+   "where": "local",
+   "phase": {
+    "es": "Voz del asistente",
+    "en": "The assistant's voice"
+   },
+   "model": {
+    "es": "Piper o Pocket TTS",
+    "en": "Piper or Pocket TTS"
+   },
+   "source": "voicebot"
+  }
+ ],
+ "privacy": {
+  "es": "La voz nunca va a un servicio de IA externo: se pasa a texto en tu servidor. El texto de la conversación sí se envía a Claude (Anthropic) para la ayuda en directo y los informes.",
+  "en": "The voice never goes to an outside AI service: it becomes text on your server. The text of the conversation is sent to Claude (Anthropic) for the live help and the reports."
+ },
+ "competitors": [
+  {
+   "name": "Talkdesk",
+   "kind": "callcentre",
+   "basis": "official",
+   "source": "talkdesk",
+   "runs": "cloud",
+   "price": {
+    "es": "85–225 USD por usuario y mes. Su copiloto de IA se contrata aparte, sin precio publicado",
+    "en": "85–225 USD per user per month. Its AI copilot is an add-on with no published price"
+   },
+   "users": {
+    "es": "Por usuario. Plan Express: 25 licencias, sin permanencia",
+    "en": "Per user. Express plan: 25 licences, no commitment"
+   }
+  },
+  {
+   "name": "NICE CXone",
+   "kind": "callcentre",
+   "basis": "official",
+   "source": "nice",
+   "runs": "cloud",
+   "price": {
+    "es": "110–249 USD por agente y mes (el plan más alto suma 0,25 USD por sesión). Copilotos por consumo, sin tarifa publicada",
+    "en": "110–249 USD per agent per month (the top plan adds 0.25 USD per session). Copilots by usage, no published rate"
+   },
+   "users": {
+    "es": "Por agente, factura mensual",
+    "en": "Per agent, billed monthly"
+   }
+  },
+  {
+   "name": "Five9",
+   "kind": "callcentre",
+   "basis": "official",
+   "source": "five9",
+   "runs": "cloud",
+   "price": {
+    "es": "119–159 USD por puesto y mes; IA: 3.000 minutos por puesto más consumo",
+    "en": "119–159 USD per seat per month; AI: 3,000 minutes per seat plus usage"
+   },
+   "users": {
+    "es": "Mínimo de 50 puestos",
+    "en": "Minimum of 50 seats"
+   }
+  },
+  {
+   "name": "Twilio",
+   "kind": "callcentre",
+   "basis": "official",
+   "source": "twilio",
+   "runs": "cloud",
+   "price": {
+    "es": "Copiloto (en pruebas): 0,035 USD por minuto de voz. Flex: desde 1 USD por hora activa o 150 USD por usuario y mes",
+    "en": "Copilot (beta): 0.035 USD per voice minute. Flex: from 1 USD per active hour or 150 USD per user per month"
+   },
+   "users": {
+    "es": "Pago por uso o por usuario",
+    "en": "Pay per use or per user"
+   }
+  },
+  {
+   "name": "Cresta",
+   "kind": "callcentre",
+   "basis": "marketplace",
+   "source": "cresta",
+   "runs": "cloud",
+   "price": {
+    "es": "150.000 USD por 12 meses, hasta 100.000 llamadas; 1,50 USD por llamada adicional",
+    "en": "150,000 USD for 12 months, up to 100,000 calls; 1.50 USD per extra call"
+   },
+   "users": {
+    "es": "Contrato anual, no cancelable ni reembolsable",
+    "en": "Yearly contract, not cancellable or refundable"
+   }
+  },
+  {
+   "name": "Observe.AI",
+   "kind": "callcentre",
+   "basis": "marketplace",
+   "source": "observe",
+   "runs": "cloud",
+   "price": {
+    "es": "828 USD por agente (el anuncio dice «Cost/12 months» y no aclara el periodo)",
+    "en": "828 USD per agent (the listing says «Cost/12 months» and leaves the period unclear)"
+   },
+   "users": {
+    "es": "Por agente; contratos de 12, 24 o 36 meses, sin reembolso",
+    "en": "Per agent; 12, 24 or 36-month contracts, no refunds"
+   }
+  },
+  {
+   "name": "BrightHire",
+   "kind": "interviews",
+   "basis": "none",
+   "source": "brighthire",
+   "runs": "cloud",
+   "price": {
+    "es": "Sin precio público",
+    "en": "No public price"
+   },
+   "users": {
+    "es": "Presupuesto según candidatos, entrevistas o tamaño de la empresa",
+    "en": "Quote by applicants, interviews or company size"
+   }
+  },
+  {
+   "name": "HireVue",
+   "kind": "interviews",
+   "basis": "none",
+   "source": "hirevue",
+   "runs": "cloud",
+   "price": {
+    "es": "Sin precio público",
+    "en": "No public price"
+   },
+   "users": {
+    "es": "Sin dato público",
+    "en": "Not published"
+   }
+  },
+  {
+   "name": "Metaview",
+   "kind": "interviews",
+   "basis": "official",
+   "source": "metaview",
+   "runs": "cloud",
+   "price": {
+    "es": "Notas y entrevistador de IA: sin precio público. Su agente para buscar candidatos: 0, 100 o 300 USD por usuario y mes",
+    "en": "Notes and AI interviewer: no public price. Its candidate-sourcing agent: 0, 100 or 300 USD per user per month"
+   },
+   "users": {
+    "es": "Por usuario",
+    "en": "Per user"
+   }
+  },
+  {
+   "name": "Retell AI",
+   "kind": "voicebot",
+   "basis": "official",
+   "source": "retell",
+   "runs": "cloud",
+   "price": {
+    "es": "0,07–0,31 USD por minuto",
+    "en": "0.07–0.31 USD per minute"
+   },
+   "users": {
+    "es": "Sin mínimo; 20 llamadas a la vez incluidas, 8 USD al mes por cada línea más",
+    "en": "No minimum; 20 calls at once included, 8 USD a month per extra line"
+   }
+  },
+  {
+   "name": "Vapi",
+   "kind": "voicebot",
+   "basis": "official",
+   "source": "vapi",
+   "runs": "cloud",
+   "price": {
+    "es": "0,05 USD por minuto más el coste de los modelos; plan Pro desde 999 USD al mes",
+    "en": "0.05 USD per minute plus the models at cost; Pro plan from 999 USD a month"
+   },
+   "users": {
+    "es": "De 4 a 30 llamadas a la vez según el plan",
+    "en": "4 to 30 calls at once depending on the plan"
+   }
+  },
+  {
+   "name": "PolyAI",
+   "kind": "voicebot",
+   "basis": "official",
+   "source": "polyai",
+   "runs": "cloud",
+   "price": {
+    "es": "API: 0,02 USD por minuto conectado más el texto procesado. Plataforma completa: por presupuesto",
+    "en": "API: 0.02 USD per connected minute plus the text processed. Full platform: by quote"
+   },
+   "users": {
+    "es": "10 llamadas a la vez (API)",
+    "en": "10 calls at once (API)"
+   }
+  }
+ ],
+ "ours": {
+  "name": {
+   "es": "Nuestro sistema",
+   "en": "Our system"
+  },
+  "kind": "all",
+  "price": {
+   "es": "Sin precio definido",
+   "en": "No price set yet"
+  },
+  "users": {
+   "es": "Una sesión en directo a la vez por servidor",
+   "en": "One live session at a time per server"
+  },
+  "runs": "mixed",
+  "source": "live_session"
+ },
+ "strengths": [
+  {
+   "title": {
+    "es": "La voz no va a servicios externos",
+    "en": "The voice is not sent outside"
+   },
+   "body": {
+    "es": "Se pasa a texto en un servidor propio con una tarjeta gráfica de consumo. Todas las empresas de la tabla funcionan en la nube.",
+    "en": "It becomes text on your own server with a consumer graphics card. Every company in the table runs in the cloud."
+   },
+   "source": "live_asr"
+  },
+  {
+   "title": {
+    "es": "Ayuda en directo al entrevistador",
+    "en": "Live help for the interviewer"
+   },
+   "body": {
+    "es": "Muestra los puntos del puesto que faltan y avisa de las preguntas que es mejor evitar, con el motivo y una alternativa. Durante la entrevista no pone nota al candidato.",
+    "en": "Shows which points of the job are missing and warns about questions better avoided, with the reason and an alternative. It gives the candidate no mark during the interview."
+   },
+   "source": "assist_modes"
+  },
+  {
+   "title": {
+    "es": "Un solo sistema para todo",
+    "en": "One system for everything"
+   },
+   "body": {
+    "es": "Entrevistas, llamadas de atención y asistente de voz usan los mismos documentos.",
+    "en": "Interviews, support calls and the voice assistant use the same documents."
+   }
+  },
+  {
+   "title": {
+    "es": "Español de España primero",
+    "en": "Spanish from Spain first"
+   },
+   "body": {
+    "es": "Pensado para el español; en casi todos los competidores revisados es un idioma secundario.",
+    "en": "Designed for Spanish; for almost every competitor reviewed it is a secondary language."
+   }
+  },
+  {
+   "title": {
+    "es": "Documentos grandes y vídeos",
+    "en": "Large documents and videos"
+   },
+   "body": {
+    "es": "PDF de hasta 500 MB y vídeos de hasta 1 GB; en un vídeo se busca por lo que se dice.",
+    "en": "PDFs up to 500 MB and videos up to 1 GB; a video is searched by what is said in it."
+   },
+   "source": "knowledge"
+  },
+  {
+   "title": {
+    "es": "Tiempos publicados",
+    "en": "Published timings"
+   },
+   "body": {
+    "es": "La sugerencia aparece unos 1,5 s después de que la persona termina de hablar en una entrevista y 2,7 s en atención al cliente (medido con grabaciones sintéticas).",
+    "en": "The suggestion appears about 1.5 s after the person stops speaking in an interview and 2.7 s in customer service (measured on synthetic recordings)."
+   },
+   "source": "live_measures"
+  }
+ ],
+ "gaps": [
+  {
+   "es": "No se conecta todavía a centralitas telefónicas: escucha el micrófono del navegador o grabaciones.",
+   "en": "Not yet connected to phone systems: it listens to the browser's microphone or to recordings."
+  },
+  {
+   "es": "Una sola sesión en directo a la vez por servidor.",
+   "en": "Only one live session at a time per server."
+  },
+  {
+   "es": "Casi todas las cifras están medidas con grabaciones sintéticas, no con conversaciones reales.",
+   "en": "Almost every figure is measured on synthetic recordings, not on real conversations."
+  },
+  {
+   "es": "Sin cuentas de usuario ni permisos: un código de acceso compartido.",
+   "en": "No user accounts or roles: one shared access code."
+  },
+  {
+   "es": "Sin conexión con programas de clientes (CRM) ni de selección de personal.",
+   "en": "No link to customer (CRM) or recruiting software."
+  },
+  {
+   "es": "Sin certificaciones ni revisión jurídica todavía; lo instala su autor a mano.",
+   "en": "No certifications or legal review yet; its author installs it by hand."
+  }
+ ],
+ "content_today": [
+  {
+   "source": "knowledge",
+   "es": "Subes documentos nuevos, cambias sus datos o los borras; la biblioteca se rehace sola.",
+   "en": "You upload new documents, change their details or delete them; the library rebuilds itself."
+  },
+  {
+   "source": "interviewer",
+   "es": "Cada oferta tiene su plan de entrevista. Lo editas y cada cambio queda guardado como una versión nueva; un punto que quitas no vuelve a aparecer.",
+   "en": "Each job offer has its interview plan. You edit it and every change is kept as a new version; a point you remove does not come back."
+  },
+  {
+   "source": "candidate",
+   "es": "Las respuestas que el entrevistador confirma pasan a la siguiente ronda con ese candidato.",
+   "en": "The answers the interviewer confirms carry over to the next round with that candidate."
+  },
+  {
+   "source": "mandatory",
+   "es": "La lista de «lo que hay que decir» de cada tema lleva número de versión, y el acta dice qué se dijo y qué faltó.",
+   "en": "Each topic's «what must be said» list has a version number, and the record says what was said and what was missing."
+  }
+ ],
+ "content_automatic": {
+  "es": "Hoy nada aprende solo de las llamadas: el contenido mejora cuando una persona sube documentos o edita el plan.",
+  "en": "Today nothing learns by itself from the calls: the content improves when a person uploads documents or edits the plan."
+ },
+ "content_planned": [
+  {
+   "es": "Proponer cambios al plan y a los documentos a partir de las entrevistas y llamadas, para que una persona los apruebe.",
+   "en": "Suggest changes to the plan and the documents from the interviews and calls, for a person to approve."
+  },
+  {
+   "es": "Que el asistente de voz mejore poco a poco con las llamadas que atiende.",
+   "en": "Let the voice assistant improve little by little with the calls it handles."
+  }
+ ],
+ "roadmap": [
+  {
+   "title": {
+    "es": "Actos del lenguaje con un modelo propio",
+    "en": "Speech acts with our own model"
+   },
+   "body": {
+    "es": "Afinar un modelo como Qwen3 para reconocer el tipo de cada frase con más precisión. Punto de partida medido: el modelo pequeño afinado que se usa hoy acierta el 73 % y un modelo general de 8B, el 55 % (frases sintéticas).",
+    "en": "Fine-tune a model such as Qwen3 to recognise the type of each sentence more precisely. Measured starting point: the small fine-tuned model used today is right 73% of the time and a general 8B model 55% (synthetic sentences)."
+   },
+   "source": "acts"
+  },
+  {
+   "title": {
+    "es": "Todo el análisis en el servidor propio",
+    "en": "The whole analysis on your own server"
+   },
+   "body": {
+    "es": "Afinar un modelo propio para el análisis y la ayuda en directo, sin depender de servicios externos: también el texto se quedaría en el servidor propio.",
+    "en": "Fine-tune our own model for the analysis and the live help, with no outside services: the text would stay on your server too."
+   }
+  },
+  {
+   "title": {
+    "es": "Asistente telefónico autónomo",
+    "en": "Autonomous phone assistant"
+   },
+   "body": {
+    "es": "Conectarlo al teléfono, que atienda solo y que mejore poco a poco con las llamadas y los clientes.",
+    "en": "Connect it to the phone, let it answer on its own and improve little by little with calls and customers."
+   }
+  },
+  {
+   "title": {
+    "es": "Contrato de empresa para el modelo externo",
+    "en": "A business contract for the outside model"
+   },
+   "body": {
+    "es": "Usar Claude con un contrato de empresa (API) antes de dar servicio a clientes.",
+    "en": "Use Claude under a business contract (API) before serving customers."
+   }
+  },
+  {
+   "title": {
+    "es": "Más de una sesión a la vez",
+    "en": "More than one session at once"
+   },
+   "body": {
+    "es": "Medir cuántas conversaciones caben en un servidor y conectar centralitas telefónicas.",
+    "en": "Measure how many conversations one server can hold and connect phone systems."
+   }
+  },
+  {
+   "title": {
+    "es": "Probar con conversaciones reales",
+    "en": "Test with real conversations"
+   },
+   "body": {
+    "es": "Medir aciertos y tiempos con personas reales y su consentimiento.",
+    "en": "Measure accuracy and timings with real people and their consent."
+   }
+  }
+ ]
+}

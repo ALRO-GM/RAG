@@ -23,6 +23,8 @@ def test_the_pages_and_the_version(tmp_path: Path) -> None:
             "js/research/charts.js"} <= set(files)
     assert {"study.html", "study/data.json", "js/study.js",
             "js/views/study.js", "js/lib/study.js"} <= set(files)
+    assert {"competition.html", "competition/data.json", "js/competition.js",
+            "js/views/competition.js", "js/lib/competition.js"} <= set(files)
     assert {"js/lib/lab.js", "js/views/lab.js", "js/views/lab-run.js",
             "js/views/lab-timeline.js", "js/views/lab-review.js"} <= set(files)
     assert "package.json" not in files
