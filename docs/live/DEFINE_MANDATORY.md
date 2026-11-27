@@ -23,7 +23,10 @@ no se cambia desde la web. Además puedes hacer listas propias:
 «Administración › Lo que hay que decir». Ahí ves la lista general de cada
 tipo y tus listas. Puedes crear una lista nueva, duplicar cualquiera (la
 general también, como punto de partida), cambiarle el nombre, editarla,
-ordenar sus puntos y eliminarla (la página pide confirmación).
+ordenar sus puntos y eliminarla (la página pide confirmación). Al
+eliminarla deja de aparecer y ninguna oferta la usa, pero sus versiones
+ya guardadas se conservan para poder repasar las sesiones que las usaron;
+una lista nueva con el mismo nombre es otra lista.
 
 ## Cómo se escribe un punto
 
@@ -51,9 +54,10 @@ Son avisos orientativos, no una medición.
 Cada lista **se suma a la lista general** (lo normal: así no se pierde,
 por ejemplo, el aviso de protección de datos) o **la sustituye** (solo se
 dicen sus puntos: comprueba que incluyes los avisos legales que hagan
-falta). Una copia de la lista general también se suma: sus puntos no
-salen dos veces, porque conservan los del original. Un punto nuevo nunca
-ocupa el sitio de uno de la lista general, aunque se llame igual.
+falta). Una copia de la lista general también se suma. Cada punto
+copiado sustituye al mismo punto de la lista general, así que no sale
+dos veces. Un punto que añades tú nunca sustituye a uno de la lista
+general, aunque tenga el mismo texto.
 
 Una lista no se puede guardar si, junto con la general, pasa de 30
 puntos o sus textos son demasiado largos para comprobarlos: la página

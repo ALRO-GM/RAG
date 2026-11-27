@@ -3,7 +3,10 @@
 Owner data, like the interview plans, outside the repository's seed
 manifests: ``<dir>/lists/<id>.json`` is the current version of a list
 and ``<dir>/lists/<id>/v<version>.json`` every version saved (a session
-records the version it used, so an old one can be read again);
+records the version it used, so an old one can be read again). Deleting
+a list removes its current file only: its versions stay, so a recovered
+round can still read the list it used, and its id is never given to
+another list (#294 review);
 ``<dir>/offers/<plan id>.json`` says which list a job offer uses. Ids
 are checked against fixed patterns before a path is built; writes go
 through a temporary file created with mode 600 (readable by its owner
@@ -13,7 +16,6 @@ only) and replace the file at once.
 import json
 import os
 import re
-import shutil
 import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -79,12 +81,20 @@ class JsonMandatoryLists:
         _write(self._path(owned.id, owned.version), document)
         _write(self._path(owned.id), document)
 
+    def taken(self) -> List[str]:
+        """Every id ever used: current lists and deleted ones (whose
+        versions are kept), so a deleted id is never reused."""
+        folder = self.root / "lists"
+        if not folder.is_dir():
+            return []
+        return sorted({p.stem for p in folder.glob("*.json")}
+                      | {p.name for p in folder.iterdir() if p.is_dir()})
+
     def delete(self, list_id: str) -> bool:
-        """Delete a list, its versions and the offers that used it."""
+        """Delete a list (its versions stay) and free its offers."""
         path = self._path(list_id)
         existed = path.exists()
         path.unlink(missing_ok=True)
-        shutil.rmtree(self.root / "lists" / list_id, ignore_errors=True)
         for plan, used in self.offers().items():
             if used == list_id:
                 self.assign(plan, None)

@@ -423,3 +423,25 @@ test("a list too big to check says so in plain words", async () => {
     assert.equal(statusOf(box).textContent, es["mi.err.too_big"]);
   });
 });
+
+test("«Duplicar» stays open without a name, and a refusal says why", async () => {
+  await withDom("es", async ({ copyList }) => {
+    const api = { createMandatoryList: async () => { throw Object.assign(new Error("x"), { code: "unavailable" }); } };
+    const done = copyList({ api, navigate: () => {} }, SAVED, "support", { name: "" });
+    await settle();
+    const dialog = globalThis.document.body.children.find((n) => n.tagName === "DIALOG");
+    const form = byTag(dialog, "FORM")[0];
+    const input = byTag(dialog, "INPUT")[0];
+    input.value = "   ";
+    for (const fn of form.listeners.submit) fn({ preventDefault() {} });
+    assert.equal(dialog.open, true, "an empty name keeps the dialog open");
+    const alert = dialog.all().find((n) => n.attributes?.role === "alert");
+    assert.equal(alert.hidden, false, "and says a name is needed");
+    input.value = "Copia";
+    for (const fn of form.listeners.submit) fn({ preventDefault() {} });
+    assert.equal(dialog.open, false);
+    assert.equal(await done, null);
+    const toast = globalThis.document.body.children.find((n) => n.className === "toasts");
+    assert.ok(toast.text().includes(es["mi.err.unavailable"]), "the general list down has its own words");
+  });
+});

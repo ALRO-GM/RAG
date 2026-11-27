@@ -168,21 +168,30 @@ class MemoryLists:
     def __init__(self) -> None:
         self.versions: Dict[str, Dict[int, OwnerList]] = {}
         self.offered: Dict[str, str] = {}
+        self.deleted: set[str] = set()
 
     def list(self) -> List[OwnerList]:
-        return [v[max(v)] for v in self.versions.values()]
+        return [v[max(v)] for k, v in self.versions.items()
+                if k not in self.deleted]
 
     def load(self, list_id: str, version: Optional[int] = None) -> OwnerList:
+        if version is None and list_id in self.deleted:
+            raise KeyError(list_id)
         found = self.versions[list_id]
         return found[max(found) if version is None else version]
 
     def save(self, owned: OwnerList) -> None:
         self.versions.setdefault(owned.id, {})[owned.version] = owned
 
+    def taken(self) -> List[str]:
+        return list(self.versions)
+
     def delete(self, list_id: str) -> bool:
         self.offered = {p: x for p, x in self.offered.items()
                         if x != list_id}
-        return self.versions.pop(list_id, None) is not None
+        existed = list_id in self.versions and list_id not in self.deleted
+        self.deleted.add(list_id)
+        return existed
 
     def offer_list(self, plan_id: str) -> Optional[str]:
         return self.offered.get(plan_id)
@@ -386,7 +395,7 @@ def test_the_list_of_a_session() -> None:
             lists.for_session(kind, chosen_id)
     # An offer whose list file went missing falls back to the general.
     assert isinstance(store, MemoryLists)
-    store.versions.pop(mine["id"])
+    store.deleted.add(mine["id"])
     gone = lists.for_session("interview", None, "plan-1")
     assert gone is not None and gone.owned is None
     assert lists.offer("plan-1")["list"] is None
@@ -709,3 +718,22 @@ def test_a_recorded_list_is_read_at_its_version() -> None:
     assert general is not None and general.owned is None
     assert general.ref(GENERAL).get("instead_of") is None
     assert lists.for_record(None, ref) is None
+
+
+def test_a_deleted_id_is_never_given_to_another_list() -> None:
+    """#294 review 2: «Verano» deleted and made again is another list; a
+    recovered round of the old session still reads the old one."""
+    lists = use_case()
+    old = lists.create({"name": "Verano", "kind": "support",
+                        "items": ITEMS})
+    lists.delete(old["id"])
+    assert lists.overview()["lists"][-1]["id"] != old["id"]
+    new = lists.create({"name": "Verano", "kind": "support",
+                        "items": ITEMS[:1]})
+    assert new["id"] == "verano-2" and old["id"] == "verano"
+    again = lists.for_record("support", {"id": old["id"], "general": False,
+                                         "version": 1})
+    assert again is not None and again.owned is not None
+    assert again.owned.id == "verano" and len(again.owned.items) == 2
+    with pytest.raises(ListError):
+        lists.get(old["id"])  # gone from the page

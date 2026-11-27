@@ -175,9 +175,11 @@ class MandatoryLists:
         read nothing is saved (``unavailable``).
         """
         with self._lock:
-            return self._create(body)
+            owned = self._create(body)
+        # The review's model calls run outside the lock (as in update).
+        return self._saved(owned)
 
-    def _create(self, body: Mapping[str, Any]) -> Document:
+    def _create(self, body: Mapping[str, Any]) -> OwnerList:
         if len(self.store.list()) >= MAX_LISTS:
             raise ListError("conflict", f"at most {MAX_LISTS} lists")
         source = body.get("from")
@@ -200,14 +202,16 @@ class MandatoryLists:
         if kind not in KINDS:
             raise ListError("invalid_request",
                             f"kind must be one of {KINDS}")
-        taken = [o.id for o in self.store.list()]
+        # A deleted list's id is never reused: a recovered round reading
+        # an old record must never get another list (#294 review).
+        taken = self.store.taken()
         list_id = unique_id(slug(str(data.get("name") or ""), 48), taken)
         general = self.general(str(kind))
         owned = self._valid(data, list_id, str(kind), 1, keep,
                             _ids(general))
         self._fits(general, owned)
         self.store.save(owned)
-        return self._saved(owned)
+        return owned
 
     def update(self, list_id: str, body: Mapping[str, Any]) -> Document:
         """Save an edit: ``{"version", "name", "mode", "items"}``.

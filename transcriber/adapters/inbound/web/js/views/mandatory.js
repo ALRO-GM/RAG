@@ -173,7 +173,7 @@ export async function copyList(ctx, list, kind, { name = null, open = true } = {
     if (open) ctx.navigate(listHref(made.id));
     return made;
   } catch (error) {
-    toast(describeError(error), { error: true });
+    toast(saveError(error), { error: true }); // the general list down, too big: their own words
     return null;
   }
 }

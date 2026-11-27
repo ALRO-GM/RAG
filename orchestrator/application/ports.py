@@ -330,7 +330,12 @@ class MandatoryListStore(Protocol):
         ...
 
     def delete(self, list_id: str) -> bool:
-        """Delete a list and its versions; tell whether it existed."""
+        """Delete a list (its versions stay readable by
+        :meth:`load` with a version); tell whether it existed."""
+        ...
+
+    def taken(self) -> List[str]:
+        """Return every id ever used, deleted lists' too (never reused)."""
         ...
 
     def offer_list(self, plan_id: str) -> Optional[str]:

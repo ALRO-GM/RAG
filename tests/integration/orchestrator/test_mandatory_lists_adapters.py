@@ -82,7 +82,13 @@ def test_offers_name_a_list_and_lose_it_with_the_list(tmp_path: Path
     assert store.delete("verano") is True
     assert store.offer_list("plan-1") is None
     assert store.delete("verano") is False
-    assert not (tmp_path / "lists" / "verano").exists()
+    # The versions stay (a recovered round reads them) and the id stays
+    # taken; the list itself is gone from the lists.
+    assert store.list() == [] and store.taken() == ["verano"]
+    assert store.load("verano", 1).name == "Verano"
+    with pytest.raises(KeyError):
+        store.load("verano")
+    assert JsonMandatoryLists(tmp_path / "none").taken() == []
 
 
 def test_the_word_check_takes_a_sent_list_and_reviews_it() -> None:

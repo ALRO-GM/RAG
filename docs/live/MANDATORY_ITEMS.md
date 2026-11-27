@@ -150,7 +150,7 @@ and can be copied as a starting point.
 | Part | Where |
 |---|---|
 | A list: id, name, kind, `add` / `replace`, version, items (`id`, `text`, `phase`: `opening` / `during` / `closing`, `must_say`: 1–6 examples); at most 20 items, 300 characters per text, 200 lists; ids are made by the server from the text | `orchestrator/domain/mandatory_lists.py` |
-| Stored outside the repository, like the plans: `<dir>/lists/<id>.json` (current) and `<dir>/lists/<id>/v<version>.json` (every version), `<dir>/offers/<plan>.json` (the list of a job offer); files of mode 600 | `orchestrator/adapters/outbound/fs_mandatory_lists.py`, `serve --mandatory-dir` (default `data/mandatory`) |
+| Stored outside the repository, like the plans: `<dir>/lists/<id>.json` (current) and `<dir>/lists/<id>/v<version>.json` (every version), `<dir>/offers/<plan>.json` (the list of a job offer); files of mode 600. Deleting a list removes its current file and frees its offers; its versions stay, so a recovered round still reads the list it used, and its id is never given to another list (a new «Verano» after a deleted one is `verano-2`); deleted lists never show on the lists page | `orchestrator/adapters/outbound/fs_mandatory_lists.py`, `serve --mandatory-dir` (default `data/mandatory`) |
 | Create, copy, edit (names the version it was based on: 409 when older), delete, review; the offers' choice; the list of a new session | `orchestrator/application/mandatory_lists.py`, routes `/mandatory/...` and `/interview/plans/{id}/mandatory` (same bearer token; on the web behind the access code, through `/api/assist/...`) |
 
 **Which list a session uses.** A support call uses the list chosen on the
