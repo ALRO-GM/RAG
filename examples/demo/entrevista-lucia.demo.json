@@ -185,6 +185,31 @@
    }
   }
  ],
+ "mandatory": {
+  "domain": "interview.demo",
+  "version": 1,
+  "remind_seconds": 45,
+  "items": [
+   {
+    "id": "saludo",
+    "text": "Saludar y dar las gracias por venir",
+    "phase": "opening",
+    "said_by": "t0.s0",
+    "en": {
+     "text": "Greet and thank them for coming"
+    }
+   },
+   {
+    "id": "siguientes-pasos",
+    "text": "Explicar los siguientes pasos del proceso",
+    "phase": "closing",
+    "said_by": "t10.s0",
+    "en": {
+     "text": "Explain the next steps of the process"
+    }
+   }
+  ]
+ },
  "suggestions": [
   {
    "after": "t1.s0",

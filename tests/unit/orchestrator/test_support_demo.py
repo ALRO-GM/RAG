@@ -246,8 +246,18 @@ def test_the_interview_demo_is_unchanged_by_the_support_one() -> None:
     live = sessions()
     live.start_replay("demo-i", "", "", speed=None, demo="entrevista-lucia")
     found, _ = live.feed("demo-i").read(0, 0.01)
-    kinds = {m["type"] for _, m in found}
-    assert "mandatory" not in kinds and "handoff" not in kinds
+    messages = [m for _, m in found]
+    # #286: the interview demo has its own two items (greeting, next
+    # steps), said by its first and last lines: the block comes first
+    # and folds once both are said; the support demo's are not in it.
+    lists = [m["checklist"] for m in messages if m["type"] == "mandatory"]
+    first = [i["id"] for i in lists[0]["items"]]
+    assert first == ["saludo", "siguientes-pasos"]
+    assert all(i["state"] == "pending" for i in lists[0]["items"])
+    said = [[i["utterance"] for i in c["items"]] for c in lists[1:]]
+    assert said == [["t0.s0", None], ["t0.s0", "t10.s0"]]
+    handoff = next(m["handoff"] for m in messages if m["type"] == "handoff")
+    assert handoff["mandatory"]["missing"] == []
 
 
 # ---- the report and the voice example --------------------------------------

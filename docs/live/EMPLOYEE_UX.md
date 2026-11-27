@@ -215,7 +215,11 @@ interviewer line that asks each concept (`asked_by`), so the demo shows
 the levels by the live rule (two topics end «bien tratado», three
 «tratado»), concepts asked apart from treated («Pruebas de integración»
 is asked and never answered) and the next concept to ask, ending with
-«Otra vez, si hay tiempo: Pruebas de integración». Its hints, suggestion texts,
+«Otra vez, si hay tiempo: Pruebas de integración» (shown only while it
+plays). It also has two mandatory items of its own (`interview.demo`:
+greet and thank them for coming, said by the first line; explain the
+next steps, said by the last), so «Lo que hay que decir» opens first
+with one pending and folds once both are said. Its hints, suggestion texts,
 topics and title also come in English (`en`) for a page in English;
 the conversation stays Spanish. A new demo, a live session or a
 recorded replay stops a demo still playing (a demo never stops a real
